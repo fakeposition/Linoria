@@ -3510,7 +3510,6 @@ function Library:CreateWindow(...)
                 BorderSizePixel = 0;
                 Size = UDim2.new(1, 0, 0, 2);
                 ZIndex = 5;
-                Visible = false;
                 Parent = BoxInner;
             });
 
@@ -3611,7 +3610,6 @@ function Library:CreateWindow(...)
                 BorderSizePixel = 0;
                 Size = UDim2.new(1, 0, 0, 2);
                 ZIndex = 10;
-                Visible = false;
                 Parent = BoxInner;
             });
 
