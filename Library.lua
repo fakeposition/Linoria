@@ -3205,11 +3205,11 @@ function Library:CreateWindow(...)
         Parent = Inner;
     });
 
-    -- Game name label: right-aligned, accent colored, auto-sized
+    -- Game name label: right-aligned in title bar, accent colored, auto-sized
     local GameNameLabel = Library:Create('TextLabel', {
-        AnchorPoint = Vector2.new(1, 0.5);
+        AnchorPoint = Vector2.new(1, 0);
         BackgroundTransparency = 1;
-        Position = UDim2.new(1, -7, 0.5, -12.5);
+        Position = UDim2.new(1, -7, 0, 0);
         Size = UDim2.new(0, 0, 0, 25);
         AutomaticSize = Enum.AutomaticSize.X;
         Text = type(Config.GameName) == 'string' and Config.GameName or '';
