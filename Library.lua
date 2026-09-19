@@ -3214,6 +3214,8 @@ function Library:CreateWindow(...)
         Config.Position = UDim2.fromScale(0.5, 0.5)
     end
 
+    Library.UISize = Config.Size;
+
     local Window = {
         Tabs = {};
     };
@@ -3233,7 +3235,7 @@ function Library:CreateWindow(...)
 
     local Inner = Library:Create('Frame', {
         BackgroundColor3 = Library.MainColor;
-        BorderColor3 = Library.OutlineColor;
+        BorderColor3 = Library.AccentColor;
         BorderMode = Enum.BorderMode.Inset;
         Position = UDim2.new(0, 1, 0, 1);
         Size = UDim2.new(1, -2, 1, -2);
@@ -3243,7 +3245,7 @@ function Library:CreateWindow(...)
 
     Library:AddToRegistry(Inner, {
         BackgroundColor3 = 'MainColor';
-        BorderColor3 = 'OutlineColor';
+        BorderColor3 = 'AccentColor';
     });
 
     local WindowLabel = Library:CreateLabel({
@@ -3255,27 +3257,15 @@ function Library:CreateWindow(...)
         Parent = Inner;
     });
 
-    -- Game name label: right-aligned, accent colored, auto-sized
-    local GameNameLabel = Library:Create('TextLabel', {
-        AnchorPoint = Vector2.new(1, 0.5);
-        BackgroundTransparency = 1;
-        Position = UDim2.new(1, -7, 0.5, -12.5);
-        Size = UDim2.new(0, 0, 0, 25);
-        AutomaticSize = Enum.AutomaticSize.X;
-        Text = type(Config.GameName) == 'string' and Config.GameName or '';
-        TextColor3 = Library.AccentColor;
-        Font = Library.Font;
-        TextSize = 16;
+    local VersionLabel = Library:CreateLabel({
+        Position = UDim2.new(0, -8, 0, 0);
+        Size = UDim2.new(1, 0, 0, 25);
+        Text = Config.Version or '';
+        RichText = true;
         TextXAlignment = Enum.TextXAlignment.Right;
-        ZIndex = 2;
+        ZIndex = 1;
         Parent = Inner;
     });
-
-    Library:AddToRegistry(GameNameLabel, {
-        TextColor3 = 'AccentColor';
-    });
-
-    Library:ApplyTextStroke(GameNameLabel);
 
     local MainSectionOuter = Library:Create('Frame', {
         BackgroundColor3 = Library.BackgroundColor;
@@ -3339,10 +3329,6 @@ function Library:CreateWindow(...)
         WindowLabel.Text = Title;
     end;
 
-    function Window:SetGameName(Name)
-        GameNameLabel.Text = type(Name) == 'string' and Name or '';
-    end;
-
     function Window:AddTab(Name)
         local Tab = {
             Groupboxes = {};
@@ -3400,7 +3386,7 @@ function Library:CreateWindow(...)
             BackgroundTransparency = 1;
             BorderSizePixel = 0;
             Position = UDim2.new(0, 8 - 1, 0, 8 - 1);
-            Size = UDim2.new(0.5, -12 + 2, 0, 507 + 2);
+            Size = UDim2.new(0.5, -12 + 2, 0, Library.UISize.Height.Offset - 91);
             CanvasSize = UDim2.new(0, 0, 0, 0);
             BottomImage = '';
             TopImage = '';
@@ -3413,7 +3399,7 @@ function Library:CreateWindow(...)
             BackgroundTransparency = 1;
             BorderSizePixel = 0;
             Position = UDim2.new(0.5, 4 + 1, 0, 8 - 1);
-            Size = UDim2.new(0.5, -12 + 2, 0, 507 + 2);
+            Size = UDim2.new(0.5, -12 + 2, 0, Library.UISize.Height.Offset - 91);
             CanvasSize = UDim2.new(0, 0, 0, 0);
             BottomImage = '';
             TopImage = '';
@@ -3762,6 +3748,13 @@ function Library:CreateWindow(...)
 
         function Tab:AddRightTabbox(Name)
             return Tab:AddTabbox({ Name = Name, Side = 2; });
+        end;
+
+        function Tab:Remove()
+            table.clear(Tab);
+            TabFrame:Destroy();
+            TabButton:Destroy();
+            Window.Tabs[Name] = nil;
         end;
 
         TabButton.InputBegan:Connect(function(Input)
