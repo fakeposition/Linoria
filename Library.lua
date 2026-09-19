@@ -3695,6 +3695,24 @@ function Library:CreateWindow(...)
                     Button.BackgroundColor3 = Library.BackgroundColor;
                     Library.RegistryMap[Button].Properties.BackgroundColor3 = 'BackgroundColor';
 
+                    -- Highlight を選択中タブのボタン幅・X位置に追従させる
+                    local btns = {};
+                    for _, child in ipairs(TabboxButtons:GetChildren()) do
+                        if not child:IsA('UIListLayout') then
+                            table.insert(btns, child);
+                        end;
+                    end;
+                    local tabCount = #btns;
+                    local btnIndex = 0;
+                    for i, b in ipairs(btns) do
+                        if b == Button then btnIndex = i; break; end;
+                    end;
+                    if tabCount > 0 and btnIndex > 0 then
+                        local w = 1 / tabCount;
+                        Highlight.Size     = UDim2.new(w, 0, 0, 2);
+                        Highlight.Position = UDim2.new(w * (btnIndex - 1), 0, 0, 0);
+                    end;
+
                     Tab:Resize();
                 end;
 
