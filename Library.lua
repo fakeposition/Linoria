@@ -3604,22 +3604,13 @@ function Library:CreateWindow(...)
                 BackgroundColor3 = 'BackgroundColor';
             });
 
-            local Highlight = Library:Create('Frame', {
-                BackgroundColor3 = Library.AccentColor;
-                BorderSizePixel = 0;
-                Size = UDim2.new(1, 0, 0, 2);
-                ZIndex = 10;
-                Parent = BoxInner;
-            });
-
-            Library:AddToRegistry(Highlight, {
-                BackgroundColor3 = 'AccentColor';
-            });
+            -- 全幅 Highlight は使わない: 各ボタンに AccentBar を持たせる方式に変更
+            -- (Highlight をここで作らず、BoxInner 上部の accent line は廃止)
 
             local TabboxButtons = Library:Create('Frame', {
                 BackgroundTransparency = 1;
-                Position = UDim2.new(0, 0, 0, 1);
-                Size = UDim2.new(1, 0, 0, 18);
+                Position = UDim2.new(0, 0, 0, 0);
+                Size = UDim2.new(1, 0, 0, 20);
                 ZIndex = 5;
                 Parent = BoxInner;
             });
@@ -3644,6 +3635,21 @@ function Library:CreateWindow(...)
 
                 Library:AddToRegistry(Button, {
                     BackgroundColor3 = 'MainColor';
+                });
+
+                -- ボタン上部に AccentBar: 選択中のみ表示
+                local AccentBar = Library:Create('Frame', {
+                    BackgroundColor3 = Library.AccentColor;
+                    BorderSizePixel = 0;
+                    Size = UDim2.new(1, 0, 0, 2);
+                    Position = UDim2.new(0, 0, 0, 0);
+                    Visible = false;
+                    ZIndex = 11;
+                    Parent = Button;
+                });
+
+                Library:AddToRegistry(AccentBar, {
+                    BackgroundColor3 = 'AccentColor';
                 });
 
                 local ButtonLabel = Library:CreateLabel({
@@ -3691,27 +3697,10 @@ function Library:CreateWindow(...)
 
                     Container.Visible = true;
                     Block.Visible = true;
+                    AccentBar.Visible = true;
 
                     Button.BackgroundColor3 = Library.BackgroundColor;
                     Library.RegistryMap[Button].Properties.BackgroundColor3 = 'BackgroundColor';
-
-                    -- Highlight を選択中タブのボタン幅・X位置に追従させる
-                    local btns = {};
-                    for _, child in ipairs(TabboxButtons:GetChildren()) do
-                        if not child:IsA('UIListLayout') then
-                            table.insert(btns, child);
-                        end;
-                    end;
-                    local tabCount = #btns;
-                    local btnIndex = 0;
-                    for i, b in ipairs(btns) do
-                        if b == Button then btnIndex = i; break; end;
-                    end;
-                    if tabCount > 0 and btnIndex > 0 then
-                        local w = 1 / tabCount;
-                        Highlight.Size     = UDim2.new(w, 0, 0, 2);
-                        Highlight.Position = UDim2.new(w * (btnIndex - 1), 0, 0, 0);
-                    end;
 
                     Tab:Resize();
                 end;
@@ -3719,6 +3708,7 @@ function Library:CreateWindow(...)
                 function Tab:Hide()
                     Container.Visible = false;
                     Block.Visible = false;
+                    AccentBar.Visible = false;
 
                     Button.BackgroundColor3 = Library.MainColor;
                     Library.RegistryMap[Button].Properties.BackgroundColor3 = 'MainColor';
