@@ -1001,6 +1001,14 @@ do
             table.insert(self._ColorPickerFrames, DisplayFrame);
         end;
 
+        -- Shrink ToggleRegion so it never physically overlaps the color picker swatches.
+        -- Each swatch is 28px wide + 4px UIListLayout padding.
+        if self._ToggleRegion then
+            local count = #self._ColorPickerFrames;
+            local newWidth = math.max(0, (self._ToggleRegionBaseWidth or 170) - count * 32);
+            self._ToggleRegion.Size = UDim2.new(0, newWidth, 1, 0);
+        end;
+
         Options[Idx] = ColorPicker;
 
         return self;
@@ -1931,6 +1939,8 @@ do
         end;
 
         Toggle._ColorPickerFrames = {};
+        Toggle._ToggleRegion = ToggleRegion;
+        Toggle._ToggleRegionBaseWidth = 170;
 
         ToggleRegion.InputBegan:Connect(function(Input)
             if Input.UserInputType == Enum.UserInputType.MouseButton1 and not Library:MouseIsOverOpenedFrame() then
