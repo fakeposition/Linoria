@@ -3255,23 +3255,14 @@ function Library:CreateWindow(...)
         BackgroundColor3 = 'BackgroundColor';
     });
 
-    -- TabSlot: the exact gap between layer2 top and layer3 top (Y=0 to Y=30)
-    -- TabArea sits inside with AnchorPoint(0, 0.5) + Position Y scale 0.5 → perfect auto-center always
-    local TabSlot = Library:Create('Frame', {
-        BackgroundTransparency = 1;
-        Position = UDim2.new(0, 8, 0, 0);
-        Size = UDim2.new(1, -16, 0, 30);
-        ZIndex = 1;
-        Parent = MainSectionInner;
-    });
-
+    -- TabArea centered between layer2 top (Y=0) and TabContainer top (Y=30)
+    -- center = 0 + (30-0)/2 - 21/2 = 15 - 10.5 = 4.5 → 9 accounts for border pixel offsets
     local TabArea = Library:Create('Frame', {
         BackgroundTransparency = 1;
-        AnchorPoint = Vector2.new(0, 0.5);
-        Position = UDim2.new(0, 0, 0.5, 7);
-        Size = UDim2.new(1, 0, 0, 21);
+        Position = UDim2.new(0, 8, 0, 9);
+        Size = UDim2.new(1, -16, 0, 21);
         ZIndex = 1;
-        Parent = TabSlot;
+        Parent = MainSectionInner;
     });
 
     local TabListLayout = Library:Create('UIListLayout', {
