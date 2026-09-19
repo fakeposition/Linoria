@@ -3301,9 +3301,12 @@ function Library:CreateWindow(...)
 
         local TabButtonWidth = Library:GetTextBounds(Name, Library.Font, 16);
 
+        -- TabButton Outer: mirrors groupbox BoxOuter exactly
+        -- width measured from text bounds + horizontal padding
         local TabButton = Library:Create('Frame', {
             BackgroundColor3 = Library.BackgroundColor;
             BorderColor3 = Library.OutlineColor;
+            BorderMode = Enum.BorderMode.Inset;
             Size = UDim2.new(0, TabButtonWidth + 8 + 4, 1, 0);
             ZIndex = 1;
             Parent = TabArea;
@@ -3314,36 +3317,54 @@ function Library:CreateWindow(...)
             BorderColor3 = 'OutlineColor';
         });
 
-        local TabButtonLabel = Library:CreateLabel({
-            Position = UDim2.new(0, 0, 0, 2);
-            Size = UDim2.new(1, 0, 1, -3);
-            Text = Name;
-            ZIndex = 1;
+        -- TabButtonInner: mirrors groupbox BoxInner exactly
+        -- inset 1px on all sides inside the outer border
+        local TabButtonInner = Library:Create('Frame', {
+            BackgroundColor3 = Library.BackgroundColor;
+            BorderColor3 = Color3.new(0, 0, 0);
+            Size = UDim2.new(1, -2, 1, -2);
+            Position = UDim2.new(0, 1, 0, 1);
+            ZIndex = 2;
             Parent = TabButton;
         });
 
-        -- Accent bar on top of active tab
-        local TabAccentBar = Library:Create('Frame', {
+        Library:AddToRegistry(TabButtonInner, {
+            BackgroundColor3 = 'BackgroundColor';
+        });
+
+        -- Highlight: mirrors groupbox Highlight exactly
+        -- sits at the very top of TabButtonInner, hidden when inactive
+        local TabHighlight = Library:Create('Frame', {
             BackgroundColor3 = Library.AccentColor;
             BorderSizePixel = 0;
-            Position = UDim2.new(0, 0, 0, 0);
             Size = UDim2.new(1, 0, 0, 2);
+            Position = UDim2.new(0, 0, 0, 0);
+            ZIndex = 3;
             Visible = false;
-            ZIndex = 4;
-            Parent = TabButton;
+            Parent = TabButtonInner;
         });
 
-        Library:AddToRegistry(TabAccentBar, {
+        Library:AddToRegistry(TabHighlight, {
             BackgroundColor3 = 'AccentColor';
         });
 
+        -- Label: starts at Y=2 to sit below the highlight bar, same as groupbox label
+        local TabButtonLabel = Library:CreateLabel({
+            Position = UDim2.new(0, 0, 0, 2);
+            Size = UDim2.new(1, 0, 1, -2);
+            Text = Name;
+            ZIndex = 3;
+            Parent = TabButtonInner;
+        });
+
+        -- Blocker: hides the bottom border of TabButton when active so it merges with TabContainer
         local Blocker = Library:Create('Frame', {
             BackgroundColor3 = Library.MainColor;
             BorderSizePixel = 0;
             Position = UDim2.new(0, 0, 1, 0);
             Size = UDim2.new(1, 0, 0, 1);
             BackgroundTransparency = 1;
-            ZIndex = 3;
+            ZIndex = 4;
             Parent = TabButton;
         });
 
@@ -3414,18 +3435,34 @@ function Library:CreateWindow(...)
                 Tab:HideTab();
             end;
 
+            -- Active tab: bg matches MainColor (same as TabContainer bg) so it blends in
+            -- Blocker kills the bottom seam border
+            -- Inner bg also MainColor, Highlight visible
             Blocker.BackgroundTransparency = 0;
+
             TabButton.BackgroundColor3 = Library.MainColor;
             Library.RegistryMap[TabButton].Properties.BackgroundColor3 = 'MainColor';
-            TabAccentBar.Visible = true;
+
+            TabButtonInner.BackgroundColor3 = Library.MainColor;
+            Library.RegistryMap[TabButtonInner].Properties.BackgroundColor3 = 'MainColor';
+
+            TabHighlight.Visible = true;
+
             TabFrame.Visible = true;
         end;
 
         function Tab:HideTab()
+            -- Inactive tab: bg BackgroundColor, no highlight
             Blocker.BackgroundTransparency = 1;
+
             TabButton.BackgroundColor3 = Library.BackgroundColor;
             Library.RegistryMap[TabButton].Properties.BackgroundColor3 = 'BackgroundColor';
-            TabAccentBar.Visible = false;
+
+            TabButtonInner.BackgroundColor3 = Library.BackgroundColor;
+            Library.RegistryMap[TabButtonInner].Properties.BackgroundColor3 = 'BackgroundColor';
+
+            TabHighlight.Visible = false;
+
             TabFrame.Visible = false;
         end;
 
