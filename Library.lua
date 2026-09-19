@@ -1201,7 +1201,27 @@ do
             DisplayLabel.Text = displayVal;
             ContainerLabel.Text = string.format('[%s] %s (%s)', displayVal, Info.Text, KeyPicker.Mode);
 
-            ContainerLabel.Visible = true;
+            -- Keybind List Mode フィルタ
+            -- Library.KeypickerListMode: "All" | "Toggled" | "Active"
+            --   "All"     : NoUI=false のキーピッカーを全部表示
+            --   "Toggled" : 親トグルが ON のものだけ表示
+            --   "Active"  : 親トグルが ON かつ GetState()==true のものだけ表示
+            local mode = Library.KeypickerListMode or 'All';
+            local shouldShow;
+            if mode == 'Active' then
+                -- 親がトグルで ON、かつキーが現在アクティブなものだけ
+                local parentOn = (ParentObj.Type == 'Toggle') and (ParentObj.Value == true);
+                shouldShow = parentOn and State;
+            elseif mode == 'Toggled' then
+                -- 親がトグルで ON のものだけ
+                local parentOn = (ParentObj.Type == 'Toggle') and (ParentObj.Value == true);
+                shouldShow = parentOn;
+            else
+                -- "All": 常に表示
+                shouldShow = true;
+            end;
+
+            ContainerLabel.Visible = shouldShow;
             ContainerLabel.TextColor3 = State and Library.AccentColor or Library.FontColor;
 
             Library.RegistryMap[ContainerLabel].Properties.TextColor3 = State and 'AccentColor' or 'FontColor';
@@ -2965,7 +2985,7 @@ do
 
     local WatermarkInner = Library:Create('Frame', {
         BackgroundColor3 = Library.MainColor;
-        BorderColor3 = Library.AccentColor;
+        BorderColor3 = Library.OutlineColor;
         BorderMode = Enum.BorderMode.Inset;
         Size = UDim2.new(1, 0, 1, 0);
         ZIndex = 201;
@@ -2973,7 +2993,7 @@ do
     });
 
     Library:AddToRegistry(WatermarkInner, {
-        BorderColor3 = 'AccentColor';
+        BorderColor3 = 'OutlineColor';
     });
 
     local InnerFrame = Library:Create('Frame', {
@@ -3047,6 +3067,7 @@ do
         BorderSizePixel = 0;
         Size = UDim2.new(1, 0, 0, 2);
         ZIndex = 102;
+        Visible = false;
         Parent = KeybindInner;
     });
 
@@ -3235,7 +3256,7 @@ function Library:CreateWindow(...)
 
     local Inner = Library:Create('Frame', {
         BackgroundColor3 = Library.MainColor;
-        BorderColor3 = Library.AccentColor;
+        BorderColor3 = Library.OutlineColor;
         BorderMode = Enum.BorderMode.Inset;
         Position = UDim2.new(0, 1, 0, 1);
         Size = UDim2.new(1, -2, 1, -2);
@@ -3245,7 +3266,7 @@ function Library:CreateWindow(...)
 
     Library:AddToRegistry(Inner, {
         BackgroundColor3 = 'MainColor';
-        BorderColor3 = 'AccentColor';
+        BorderColor3 = 'OutlineColor';
     });
 
     local WindowLabel = Library:CreateLabel({
@@ -3489,6 +3510,7 @@ function Library:CreateWindow(...)
                 BorderSizePixel = 0;
                 Size = UDim2.new(1, 0, 0, 2);
                 ZIndex = 5;
+                Visible = false;
                 Parent = BoxInner;
             });
 
@@ -3589,6 +3611,7 @@ function Library:CreateWindow(...)
                 BorderSizePixel = 0;
                 Size = UDim2.new(1, 0, 0, 2);
                 ZIndex = 10;
+                Visible = false;
                 Parent = BoxInner;
             });
 
