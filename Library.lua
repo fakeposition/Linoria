@@ -3255,10 +3255,10 @@ function Library:CreateWindow(...)
         BackgroundColor3 = 'BackgroundColor';
     });
 
-    -- TabArea Y = (Layer2_top(0) + Layer3_top(30)) / 2 - TabArea_height(21) / 2 = 4.5 → 5
+    -- TabArea pushed up to Y=1, sitting near the very top of layer2
     local TabArea = Library:Create('Frame', {
         BackgroundTransparency = 1;
-        Position = UDim2.new(0, 8, 0, 5);
+        Position = UDim2.new(0, 8, 0, 1);
         Size = UDim2.new(1, -16, 0, 21);
         ZIndex = 1;
         Parent = MainSectionInner;
