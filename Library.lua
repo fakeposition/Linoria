@@ -2227,7 +2227,7 @@ do
                     local OldValue = Slider.Value;
                     Slider.Value = nValue;
 
-                    Slider:Display();
+                    Slider:Display(true);
 
                     if nValue ~= OldValue then
                         Library:SafeCallback(Slider.Callback, Slider.Value);
@@ -2237,6 +2237,7 @@ do
                     RenderStepped:Wait();
                 end;
 
+                Slider:Display();
                 Library:AttemptSave();
             end;
         end);
@@ -2416,7 +2417,7 @@ do
                         local nValue  = Slider:GetValueFromXOffset(nX);
                         local OldValue = Slider.Value;
                         Slider.Value = nValue;
-                        Slider:Display();
+                        Slider:Display(true);
 
                         if nValue ~= OldValue then
                             Library:SafeCallback(Slider.Callback, Slider.Value);
@@ -2426,6 +2427,7 @@ do
                         RenderStepped:Wait();
                     end;
 
+                    Slider:Display();
                     Library:AttemptSave();
                 end;
             end);
