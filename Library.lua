@@ -3183,7 +3183,7 @@ function Library:CreateWindow(...)
 
     local Inner = Library:Create('Frame', {
         BackgroundColor3 = Library.MainColor;
-        BorderColor3 = Library.AccentColor;
+        BorderColor3 = Library.OutlineColor;
         BorderMode = Enum.BorderMode.Inset;
         Position = UDim2.new(0, 1, 0, 1);
         Size = UDim2.new(1, -2, 1, -2);
@@ -3193,7 +3193,7 @@ function Library:CreateWindow(...)
 
     Library:AddToRegistry(Inner, {
         BackgroundColor3 = 'MainColor';
-        BorderColor3 = 'AccentColor';
+        BorderColor3 = 'OutlineColor';
     });
 
     local WindowLabel = Library:CreateLabel({
@@ -3205,11 +3205,11 @@ function Library:CreateWindow(...)
         Parent = Inner;
     });
 
-    -- Game name label: right-aligned in title bar, accent colored, auto-sized
+    -- Game name label: right-aligned, accent colored, auto-sized
     local GameNameLabel = Library:Create('TextLabel', {
-        AnchorPoint = Vector2.new(1, 0);
+        AnchorPoint = Vector2.new(1, 0.5);
         BackgroundTransparency = 1;
-        Position = UDim2.new(1, -7, 0, 0);
+        Position = UDim2.new(1, -7, 0.5, -12.5);
         Size = UDim2.new(0, 0, 0, 25);
         AutomaticSize = Enum.AutomaticSize.X;
         Text = type(Config.GameName) == 'string' and Config.GameName or '';
@@ -3264,7 +3264,7 @@ function Library:CreateWindow(...)
     });
 
     local TabListLayout = Library:Create('UIListLayout', {
-        Padding = UDim.new(0, Config.TabPadding);
+        Padding = UDim.new(0, math.max(Config.TabPadding, 4));
         FillDirection = Enum.FillDirection.Horizontal;
         SortOrder = Enum.SortOrder.LayoutOrder;
         Parent = TabArea;
@@ -3315,11 +3315,26 @@ function Library:CreateWindow(...)
         });
 
         local TabButtonLabel = Library:CreateLabel({
-            Position = UDim2.new(0, 0, 0, 0);
-            Size = UDim2.new(1, 0, 1, -1);
+            Position = UDim2.new(0, 0, 0, 2);
+            Size = UDim2.new(1, 0, 1, -3);
             Text = Name;
             ZIndex = 1;
             Parent = TabButton;
+        });
+
+        -- Accent bar on top of active tab
+        local TabAccentBar = Library:Create('Frame', {
+            BackgroundColor3 = Library.AccentColor;
+            BorderSizePixel = 0;
+            Position = UDim2.new(0, 0, 0, 0);
+            Size = UDim2.new(1, 0, 0, 2);
+            Visible = false;
+            ZIndex = 4;
+            Parent = TabButton;
+        });
+
+        Library:AddToRegistry(TabAccentBar, {
+            BackgroundColor3 = 'AccentColor';
         });
 
         local Blocker = Library:Create('Frame', {
@@ -3402,6 +3417,7 @@ function Library:CreateWindow(...)
             Blocker.BackgroundTransparency = 0;
             TabButton.BackgroundColor3 = Library.MainColor;
             Library.RegistryMap[TabButton].Properties.BackgroundColor3 = 'MainColor';
+            TabAccentBar.Visible = true;
             TabFrame.Visible = true;
         end;
 
@@ -3409,6 +3425,7 @@ function Library:CreateWindow(...)
             Blocker.BackgroundTransparency = 1;
             TabButton.BackgroundColor3 = Library.BackgroundColor;
             Library.RegistryMap[TabButton].Properties.BackgroundColor3 = 'BackgroundColor';
+            TabAccentBar.Visible = false;
             TabFrame.Visible = false;
         end;
 
