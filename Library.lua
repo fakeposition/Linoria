@@ -1222,9 +1222,16 @@ do
             end;
 
             ContainerLabel.Visible = shouldShow;
-            ContainerLabel.TextColor3 = State and Library.AccentColor or Library.FontColor;
 
-            Library.RegistryMap[ContainerLabel].Properties.TextColor3 = State and 'AccentColor' or 'FontColor';
+            -- 親Toggleがある場合はそれがONの時だけActiveColor(AccentColor)にする。
+            -- 親ToggleがOFFなら、GetState()がtrueでも機能は発動していないため
+            -- 色はFontColor(非アクティブ)のままにする。
+            local parentIsToggle = (ParentObj.Type == 'Toggle');
+            local parentOn = (not parentIsToggle) or (ParentObj.Value == true);
+            local colorActive = State and parentOn;
+
+            ContainerLabel.TextColor3 = colorActive and Library.AccentColor or Library.FontColor;
+            Library.RegistryMap[ContainerLabel].Properties.TextColor3 = colorActive and 'AccentColor' or 'FontColor';
 
             local YSize = 0
             local XSize = 0
@@ -3604,13 +3611,22 @@ function Library:CreateWindow(...)
                 BackgroundColor3 = 'BackgroundColor';
             });
 
-            -- 全幅 Highlight は使わない: 各ボタンに AccentBar を持たせる方式に変更
-            -- (Highlight をここで作らず、BoxInner 上部の accent line は廃止)
+            local Highlight = Library:Create('Frame', {
+                BackgroundColor3 = Library.AccentColor;
+                BorderSizePixel = 0;
+                Size = UDim2.new(1, 0, 0, 2);
+                ZIndex = 10;
+                Parent = BoxInner;
+            });
+
+            Library:AddToRegistry(Highlight, {
+                BackgroundColor3 = 'AccentColor';
+            });
 
             local TabboxButtons = Library:Create('Frame', {
                 BackgroundTransparency = 1;
-                Position = UDim2.new(0, 0, 0, 0);
-                Size = UDim2.new(1, 0, 0, 20);
+                Position = UDim2.new(0, 0, 0, 1);
+                Size = UDim2.new(1, 0, 0, 18);
                 ZIndex = 5;
                 Parent = BoxInner;
             });
@@ -3635,21 +3651,6 @@ function Library:CreateWindow(...)
 
                 Library:AddToRegistry(Button, {
                     BackgroundColor3 = 'MainColor';
-                });
-
-                -- ボタン上部に AccentBar: 選択中のみ表示
-                local AccentBar = Library:Create('Frame', {
-                    BackgroundColor3 = Library.AccentColor;
-                    BorderSizePixel = 0;
-                    Size = UDim2.new(1, 0, 0, 2);
-                    Position = UDim2.new(0, 0, 0, 0);
-                    Visible = false;
-                    ZIndex = 11;
-                    Parent = Button;
-                });
-
-                Library:AddToRegistry(AccentBar, {
-                    BackgroundColor3 = 'AccentColor';
                 });
 
                 local ButtonLabel = Library:CreateLabel({
@@ -3697,7 +3698,6 @@ function Library:CreateWindow(...)
 
                     Container.Visible = true;
                     Block.Visible = true;
-                    AccentBar.Visible = true;
 
                     Button.BackgroundColor3 = Library.BackgroundColor;
                     Library.RegistryMap[Button].Properties.BackgroundColor3 = 'BackgroundColor';
@@ -3708,7 +3708,6 @@ function Library:CreateWindow(...)
                 function Tab:Hide()
                     Container.Visible = false;
                     Block.Visible = false;
-                    AccentBar.Visible = false;
 
                     Button.BackgroundColor3 = Library.MainColor;
                     Library.RegistryMap[Button].Properties.BackgroundColor3 = 'MainColor';
