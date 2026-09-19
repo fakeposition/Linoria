@@ -1043,7 +1043,7 @@ do
         local DisplayLabel = Library:CreateLabel({
             Size = UDim2.new(1, 0, 1, 0);
             TextSize = 13;
-            Text = (Info.Default == 'None' or Info.Default == '') and '. . .' or Info.Default;
+            Text = (Info.Default == 'None' or Info.Default == '') and '...' or Info.Default;
             TextWrapped = true;
             ZIndex = 8;
             Parent = PickInner;
@@ -1146,7 +1146,7 @@ do
             end;
 
             local State = KeyPicker:GetState();
-            local displayVal = (KeyPicker.Value == 'None' or KeyPicker.Value == '') and '. . .' or KeyPicker.Value;
+            local displayVal = (KeyPicker.Value == 'None' or KeyPicker.Value == '') and '...' or KeyPicker.Value;
 
             DisplayLabel.Text = displayVal;
             ContainerLabel.Text = string.format('[%s] %s (%s)', displayVal, Info.Text, KeyPicker.Mode);
@@ -1258,7 +1258,7 @@ do
                             Break = true;
                             Picking = false;
                             KeyPicker.Value = 'None';
-                            DisplayLabel.Text = '. . .';
+                            DisplayLabel.Text = '...';
                             Library:SafeCallback(KeyPicker.ChangedCallback, Input.KeyCode)
                             Library:SafeCallback(KeyPicker.Changed, Input.KeyCode)
                             Library:AttemptSave();
@@ -2552,7 +2552,7 @@ do
                 Str = Dropdown.Value or '';
             end;
 
-            ItemList.Text = (Str == '' and '. . .' or Str);
+            ItemList.Text = (Str == '' and '...' or Str);
         end;
 
         function Dropdown:GetActiveValues()
