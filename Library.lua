@@ -2434,6 +2434,221 @@ do
         Groupbox:Resize();
     end;
 
+    -- AddSliderRow3: 3つのスライダーを同じライン(横並び)で表示する
+    -- 使い方: Groupbox:AddSliderRow3(IdxA, InfoA, IdxB, InfoB, IdxC, InfoC)
+    --   Info は AddSlider と同じ (Text / Default / Min / Max / Rounding / Suffix / Callback / Tooltip)
+    --   Info.HideText = true にすると「値だけ」を表示 (幅が狭くてラベルが切れる場合に便利)
+    --   戻り値: 3つの Slider オブジェクト (Options[Idx] からも取得可能)
+    function Funcs:AddSliderRow3(IdxA, InfoA, IdxB, InfoB, IdxC, InfoC)
+        local Groupbox = self;
+        local Container = Groupbox.Container;
+
+        local Idxs  = { IdxA, IdxB, IdxC };
+        local Infos = { InfoA, InfoB, InfoC };
+
+        for i = 1, 3 do
+            local Info = Infos[i];
+            assert(type(Info) == 'table', 'AddSliderRow3: Missing info table for slider #' .. i .. '.');
+            assert(Info.Default, 'AddSliderRow3: Missing default value (slider #' .. i .. ').');
+            assert(Info.Text, 'AddSliderRow3: Missing slider text (slider #' .. i .. ').');
+            assert(Info.Min, 'AddSliderRow3: Missing minimum value (slider #' .. i .. ').');
+            assert(Info.Max, 'AddSliderRow3: Missing maximum value (slider #' .. i .. ').');
+            assert(Info.Rounding, 'AddSliderRow3: Missing rounding value (slider #' .. i .. ').');
+        end;
+
+        -- 横並びを保持するホルダーフレーム
+        local RowHolder = Library:Create('Frame', {
+            BackgroundTransparency = 1;
+            Size = UDim2.new(1, -4, 0, 13);
+            ZIndex = 5;
+            Parent = Container;
+        });
+
+        Library:Create('UIListLayout', {
+            FillDirection = Enum.FillDirection.Horizontal;
+            HorizontalAlignment = Enum.HorizontalAlignment.Left;
+            VerticalAlignment = Enum.VerticalAlignment.Center;
+            Padding = UDim.new(0, 4);
+            SortOrder = Enum.SortOrder.LayoutOrder;
+            Parent = RowHolder;
+        });
+
+        -- 1/3幅のスライダーを1本構築するローカル関数
+        local function BuildThirdSlider(Holder, Idx, Info, LayoutOrder)
+            local Slider = {
+                Value    = Info.Default;
+                Min      = Info.Min;
+                Max      = Info.Max;
+                Rounding = Info.Rounding;
+                MaxSize  = 70; -- 初期値: 後でAbsoluteSizeで更新
+                Type     = 'Slider';
+                Callback = Info.Callback or function() end;
+            };
+
+            -- 幅: 1/3 - (Padding4px x 2本分 / 3) ≒ 1/3, -3
+            local SliderOuter = Library:Create('Frame', {
+                BackgroundColor3 = Color3.new(0, 0, 0);
+                BorderColor3     = Color3.new(0, 0, 0);
+                Size             = UDim2.new(1 / 3, -3, 0, 13);
+                ZIndex           = 5;
+                LayoutOrder      = LayoutOrder;
+                Parent           = Holder;
+            });
+
+            Library:AddToRegistry(SliderOuter, { BorderColor3 = 'Black' });
+
+            local SliderInner = Library:Create('Frame', {
+                BackgroundColor3 = Library.MainColor;
+                BorderColor3     = Library.OutlineColor;
+                BorderMode       = Enum.BorderMode.Inset;
+                Size             = UDim2.new(1, 0, 1, 0);
+                ZIndex           = 6;
+                Parent           = SliderOuter;
+            });
+
+            Library:AddToRegistry(SliderInner, {
+                BackgroundColor3 = 'MainColor';
+                BorderColor3     = 'OutlineColor';
+            });
+
+            local Fill = Library:Create('Frame', {
+                BackgroundColor3 = Library.AccentColor;
+                BorderColor3     = Library.AccentColorDark;
+                Size             = UDim2.new(0, 0, 1, 0);
+                ZIndex           = 7;
+                Parent           = SliderInner;
+            });
+
+            Library:AddToRegistry(Fill, {
+                BackgroundColor3 = 'AccentColor';
+                BorderColor3     = 'AccentColorDark';
+            });
+
+            local HideBorderRight = Library:Create('Frame', {
+                BackgroundColor3 = Library.AccentColor;
+                BorderSizePixel  = 0;
+                Position         = UDim2.new(1, 0, 0, 0);
+                Size             = UDim2.new(0, 1, 1, 0);
+                ZIndex           = 8;
+                Parent           = Fill;
+            });
+
+            Library:AddToRegistry(HideBorderRight, { BackgroundColor3 = 'AccentColor' });
+
+            -- 幅が狭いので少し小さめの文字 + はみ出し時は末尾を省略
+            local DisplayLabel = Library:CreateLabel({
+                Size             = UDim2.new(1, 0, 1, 0);
+                TextSize         = 12;
+                Text             = 'Infinite';
+                TextTruncate     = Enum.TextTruncate.AtEnd;
+                ZIndex           = 9;
+                Parent           = SliderInner;
+            });
+
+            Library:OnHighlight(SliderOuter, SliderOuter,
+                { BorderColor3 = 'AccentColor' },
+                { BorderColor3 = 'Black' }
+            );
+
+            if type(Info.Tooltip) == 'string' then
+                Library:AddToolTip(Info.Tooltip, SliderOuter);
+            end
+
+            -- MaxSizeをAbsoluteSizeから動的に同期
+            SliderOuter:GetPropertyChangedSignal('AbsoluteSize'):Connect(function()
+                Slider.MaxSize = math.max(1, SliderOuter.AbsoluteSize.X - 2);
+                Slider:Display();
+            end);
+
+            function Slider:UpdateColors()
+                Fill.BackgroundColor3 = Library.AccentColor;
+                Fill.BorderColor3     = Library.AccentColorDark;
+            end;
+
+            function Slider:Display()
+                local Suffix = Info.Suffix or '';
+
+                if Info.HideText then
+                    DisplayLabel.Text = Slider.Value .. Suffix;
+                else
+                    DisplayLabel.Text = Info.Text .. ': ' .. Slider.Value .. Suffix;
+                end;
+
+                local X = math.ceil(Library:MapValue(Slider.Value, Slider.Min, Slider.Max, 0, Slider.MaxSize));
+                Fill.Size = UDim2.new(0, X, 1, 0);
+                HideBorderRight.Visible = not (X == Slider.MaxSize or X == 0);
+            end;
+
+            function Slider:OnChanged(Func)
+                Slider.Changed = Func;
+                Func(Slider.Value);
+            end;
+
+            local function Round(Value)
+                if Slider.Rounding == 0 then return math.floor(Value) end;
+                return tonumber(string.format('%.' .. Slider.Rounding .. 'f', Value));
+            end;
+
+            function Slider:GetValueFromXOffset(X)
+                return Round(Library:MapValue(X, 0, Slider.MaxSize, Slider.Min, Slider.Max));
+            end;
+
+            function Slider:SetValue(Str)
+                local Num = tonumber(Str);
+                if not Num then return end;
+                Num = math.clamp(Num, Slider.Min, Slider.Max);
+                Slider.Value = Num;
+                Slider:Display();
+                Library:SafeCallback(Slider.Callback, Slider.Value);
+                Library:SafeCallback(Slider.Changed, Slider.Value);
+            end;
+
+            SliderInner.InputBegan:Connect(function(Input)
+                if Input.UserInputType == Enum.UserInputType.MouseButton1 and not Library:MouseIsOverOpenedFrame() then
+                    local mPos = Mouse.X;
+                    local gPos = Fill.Size.X.Offset;
+                    local Diff = mPos - (Fill.AbsolutePosition.X + gPos);
+
+                    while InputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) do
+                        local nMPos = Mouse.X;
+                        local nX    = math.clamp(gPos + (nMPos - mPos) + Diff, 0, Slider.MaxSize);
+                        local nValue  = Slider:GetValueFromXOffset(nX);
+                        local OldValue = Slider.Value;
+                        Slider.Value = nValue;
+                        Slider:Display();
+
+                        if nValue ~= OldValue then
+                            Library:SafeCallback(Slider.Callback, Slider.Value);
+                            Library:SafeCallback(Slider.Changed, Slider.Value);
+                        end;
+
+                        RenderStepped:Wait();
+                    end;
+
+                    Library:AttemptSave();
+                end;
+            end);
+
+            -- 既にレイアウト計算済みなら実幅を反映
+            if SliderOuter.AbsoluteSize.X > 2 then
+                Slider.MaxSize = SliderOuter.AbsoluteSize.X - 2;
+            end;
+
+            Slider:Display();
+            Options[Idx] = Slider;
+            return Slider;
+        end;
+
+        local SliderA = BuildThirdSlider(RowHolder, Idxs[1], Infos[1], 1);
+        local SliderB = BuildThirdSlider(RowHolder, Idxs[2], Infos[2], 2);
+        local SliderC = BuildThirdSlider(RowHolder, Idxs[3], Infos[3], 3);
+
+        Groupbox:AddBlank(6);
+        Groupbox:Resize();
+
+        return SliderA, SliderB, SliderC;
+    end;
+
     function Funcs:AddDropdown(Idx, Info)
         if Info.SpecialType == 'Player' then
             Info.Values = GetPlayersString();
