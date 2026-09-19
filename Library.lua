@@ -2216,7 +2216,7 @@ do
         SliderInner.InputBegan:Connect(function(Input)
             if Input.UserInputType == Enum.UserInputType.MouseButton1 and not Library:MouseIsOverOpenedFrame() then
                 local mPos = Mouse.X;
-                local gPos = Fill.AbsoluteSize.X;
+                local gPos = Fill.Size.X.Offset;
                 local Diff = mPos - (Fill.AbsolutePosition.X + gPos);
 
                 while InputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) do
@@ -2227,7 +2227,7 @@ do
                     local OldValue = Slider.Value;
                     Slider.Value = nValue;
 
-                    Slider:Display(true);
+                    Slider:Display();
 
                     if nValue ~= OldValue then
                         Library:SafeCallback(Slider.Callback, Slider.Value);
@@ -2407,7 +2407,7 @@ do
             SliderInner.InputBegan:Connect(function(Input)
                 if Input.UserInputType == Enum.UserInputType.MouseButton1 and not Library:MouseIsOverOpenedFrame() then
                     local mPos = Mouse.X;
-                    local gPos = Fill.AbsoluteSize.X;
+                    local gPos = Fill.Size.X.Offset;
                     local Diff = mPos - (Fill.AbsolutePosition.X + gPos);
 
                     while InputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) do
@@ -2416,7 +2416,7 @@ do
                         local nValue  = Slider:GetValueFromXOffset(nX);
                         local OldValue = Slider.Value;
                         Slider.Value = nValue;
-                        Slider:Display(true);
+                        Slider:Display();
 
                         if nValue ~= OldValue then
                             Library:SafeCallback(Slider.Callback, Slider.Value);
@@ -2430,10 +2430,7 @@ do
                 end;
             end);
 
-            task.defer(function()
-                Slider.MaxSize = math.max(1, SliderOuter.AbsoluteSize.X - 2);
-                Slider:Display(true);
-            end);
+            Slider:Display(true);
             Options[Idx] = Slider;
             return Slider;
         end;
