@@ -2074,7 +2074,7 @@ do
             Fill.BorderColor3 = Library.AccentColorDark;
         end;
 
-        function Slider:Display()
+        function Slider:Display(Instant)
             local Suffix = Info.Suffix or '';
 
             if Info.Compact then
@@ -2086,7 +2086,14 @@ do
             end
 
             local X = math.ceil(Library:MapValue(Slider.Value, Slider.Min, Slider.Max, 0, Slider.MaxSize));
-            Fill.Size = UDim2.new(0, X, 1, 0);
+
+            if Instant then
+                Fill.Size = UDim2.new(0, X, 1, 0);
+            else
+                TweenService:Create(Fill, TweenInfo.new(0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+                    Size = UDim2.new(0, X, 1, 0);
+                }):Play();
+            end
 
             HideBorderRight.Visible = not (X == Slider.MaxSize or X == 0);
         end;
@@ -2153,7 +2160,7 @@ do
             end;
         end);
 
-        Slider:Display();
+        Slider:Display(true);
         Groupbox:AddBlank(Info.BlankSize or 6);
         Groupbox:Resize();
 
@@ -2995,8 +3002,8 @@ do
 
     local KeybindLabel = Library:CreateLabel({
         Size = UDim2.new(1, 0, 0, 20);
-        Position = UDim2.fromOffset(5, 2),
-        TextXAlignment = Enum.TextXAlignment.Left,
+        Position = UDim2.fromOffset(0, 2),
+        TextXAlignment = Enum.TextXAlignment.Center,
 
         Text = 'Keybinds';
         ZIndex = 104;
@@ -3186,13 +3193,35 @@ function Library:CreateWindow(...)
     });
 
     local WindowLabel = Library:CreateLabel({
-        Position = UDim2.new(0, 7, 0, 0);
-        Size = UDim2.new(0, 0, 0, 25);
+        Position = UDim2.new(0, 0, 0, 0);
+        Size = UDim2.new(1, 0, 0, 25);
         Text = Config.Title or '';
-        TextXAlignment = Enum.TextXAlignment.Left;
+        TextXAlignment = Enum.TextXAlignment.Center;
         ZIndex = 1;
         Parent = Inner;
     });
+
+    -- Game name label: right-aligned, accent colored, auto-sized
+    local GameNameLabel = Library:Create('TextLabel', {
+        AnchorPoint = Vector2.new(1, 0.5);
+        BackgroundTransparency = 1;
+        Position = UDim2.new(1, -7, 0.5, -12.5);
+        Size = UDim2.new(0, 0, 0, 25);
+        AutomaticSize = Enum.AutomaticSize.X;
+        Text = type(Config.GameName) == 'string' and Config.GameName or '';
+        TextColor3 = Library.AccentColor;
+        Font = Library.Font;
+        TextSize = 16;
+        TextXAlignment = Enum.TextXAlignment.Right;
+        ZIndex = 2;
+        Parent = Inner;
+    });
+
+    Library:AddToRegistry(GameNameLabel, {
+        TextColor3 = 'AccentColor';
+    });
+
+    Library:ApplyTextStroke(GameNameLabel);
 
     local MainSectionOuter = Library:Create('Frame', {
         BackgroundColor3 = Library.BackgroundColor;
@@ -3254,6 +3283,10 @@ function Library:CreateWindow(...)
 
     function Window:SetWindowTitle(Title)
         WindowLabel.Text = Title;
+    end;
+
+    function Window:SetGameName(Name)
+        GameNameLabel.Text = type(Name) == 'string' and Name or '';
     end;
 
     function Window:AddTab(Name)
@@ -3425,10 +3458,10 @@ function Library:CreateWindow(...)
 
             local GroupboxLabel = Library:CreateLabel({
                 Size = UDim2.new(1, 0, 0, 18);
-                Position = UDim2.new(0, 4, 0, 2);
+                Position = UDim2.new(0, 0, 0, 2);
                 TextSize = 14;
                 Text = Info.Name;
-                TextXAlignment = Enum.TextXAlignment.Left;
+                TextXAlignment = Enum.TextXAlignment.Center;
                 ZIndex = 5;
                 Parent = BoxInner;
             });
