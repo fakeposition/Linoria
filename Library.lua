@@ -380,18 +380,7 @@ function Library:GiveSignal(Signal)
 end
 
 function Library:Unload()
-    -- Unload all of the signals
-    for Idx = #Library.Signals, 1, -1 do
-        local Connection = table.remove(Library.Signals, Idx)
-        Connection:Disconnect()
-    end
-
-     -- Call our unload callback, maybe to undo some hooks etc
-    if Library.OnUnload then
-        Library.OnUnload()
-    end
-
-    ScreenGui:Destroy()
+    -- Unload disabled
 end
 
 function Library:OnUnload(Callback)
