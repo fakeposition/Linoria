@@ -3509,6 +3509,21 @@ function Library:CreateWindow(...)
         Parent = Inner;
     });
 
+    -- GameName label (アクセントカラー、タイトルの右側)
+    if type(Config.GameName) == 'string' and Config.GameName ~= '' then
+        local GameNameLabel = Library:CreateLabel({
+            Position = UDim2.new(0, 8, 0, 0);
+            Size = UDim2.new(1, -16, 0, 25);
+            Text = Config.GameName;
+            TextXAlignment = Enum.TextXAlignment.Right;
+            ZIndex = 2;
+            Parent = Inner;
+        });
+        Library:RemoveFromRegistry(GameNameLabel);
+        Library:AddToRegistry(GameNameLabel, { TextColor3 = 'AccentColor' });
+        GameNameLabel.TextColor3 = Library.AccentColor;
+    end
+
     local MainSectionOuter = Library:Create('Frame', {
         BackgroundColor3 = Library.BackgroundColor;
         BorderColor3 = Library.OutlineColor;
