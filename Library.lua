@@ -3260,7 +3260,7 @@ function Library:CreateWindow(...)
     local TabSlot = Library:Create('Frame', {
         BackgroundTransparency = 1;
         Position = UDim2.new(0, 8, 0, 0);
-        Size = UDim2.new(1, -16, 0, 15);
+        Size = UDim2.new(1, -16, 0, 30);
         ZIndex = 1;
         Parent = MainSectionInner;
     });
@@ -3268,7 +3268,7 @@ function Library:CreateWindow(...)
     local TabArea = Library:Create('Frame', {
         BackgroundTransparency = 1;
         AnchorPoint = Vector2.new(0, 0.5);
-        Position = UDim2.new(0, 0, 0.5, 0);
+        Position = UDim2.new(0, 0, 0.5, 7);
         Size = UDim2.new(1, 0, 0, 21);
         ZIndex = 1;
         Parent = TabSlot;
