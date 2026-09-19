@@ -2354,7 +2354,7 @@ do
             -- MaxSizeをAbsoluteSizeから動的に同期
             SliderOuter:GetPropertyChangedSignal('AbsoluteSize'):Connect(function()
                 Slider.MaxSize = math.max(1, SliderOuter.AbsoluteSize.X - 2);
-                Slider:Display();
+                Slider:Display(true);
             end);
 
             function Slider:UpdateColors()
@@ -2362,13 +2362,21 @@ do
                 Fill.BorderColor3     = Library.AccentColorDark;
             end;
 
-            function Slider:Display()
+            function Slider:Display(Instant)
                 local Suffix = Info.Suffix or '';
                 -- Compactスタイル: "Text: value"
                 DisplayLabel.Text = Info.Text .. ': ' .. Slider.Value .. Suffix;
 
                 local X = math.ceil(Library:MapValue(Slider.Value, Slider.Min, Slider.Max, 0, Slider.MaxSize));
-                Fill.Size = UDim2.new(0, X, 1, 0);
+
+                if Instant then
+                    Fill.Size = UDim2.new(0, X, 1, 0);
+                else
+                    TweenService:Create(Fill, TweenInfo.new(0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+                        Size = UDim2.new(0, X, 1, 0);
+                    }):Play();
+                end
+
                 HideBorderRight.Visible = not (X == Slider.MaxSize or X == 0);
             end;
 
@@ -2408,7 +2416,7 @@ do
                         local nValue  = Slider:GetValueFromXOffset(nX);
                         local OldValue = Slider.Value;
                         Slider.Value = nValue;
-                        Slider:Display();
+                        Slider:Display(true);
 
                         if nValue ~= OldValue then
                             Library:SafeCallback(Slider.Callback, Slider.Value);
@@ -2422,7 +2430,7 @@ do
                 end;
             end);
 
-            Slider:Display();
+            Slider:Display(true);
             Options[Idx] = Slider;
             return Slider;
         end;
