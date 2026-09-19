@@ -189,6 +189,59 @@ function Library:MakeDraggable(Instance, Cutoff)
     end)
 end;
 
+local DraggingGui = Instance.new('ScreenGui');
+DraggingGui.Parent = CoreGui;
+DraggingGui.ZIndexBehavior = Enum.ZIndexBehavior.Global;
+DraggingGui.DisplayOrder = 999;
+
+function Library:MakeDraggableOutline(Inst, Cutoff)
+    Inst.Active = true;
+
+    Inst.InputBegan:Connect(function(Input)
+        if Input.UserInputType == Enum.UserInputType.MouseButton1 then
+            local ObjPos = Vector2.new(
+                Mouse.X - Inst.AbsolutePosition.X,
+                Mouse.Y - Inst.AbsolutePosition.Y
+            );
+
+            if ObjPos.Y > (Cutoff or 40) then
+                return;
+            end;
+
+            -- ghost outline frame shown during drag
+            local GhostFrame = Library:Create('Frame', {
+                AnchorPoint = Inst.AnchorPoint;
+                BackgroundTransparency = 1;
+                Size = Inst.Size;
+                Position = Inst.Position;
+                Parent = DraggingGui;
+            });
+
+            Library:Create('UIStroke', {
+                Color = Library.AccentColor;
+                Thickness = 1;
+                Parent = GhostFrame;
+            });
+
+            while InputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) do
+                GhostFrame.Position = UDim2.new(
+                    0,
+                    Mouse.X - ObjPos.X + (Inst.Size.X.Offset * Inst.AnchorPoint.X),
+                    0,
+                    Mouse.Y - ObjPos.Y + (Inst.Size.Y.Offset * Inst.AnchorPoint.Y)
+                );
+                -- keep stroke color synced with AccentColor in case it changes
+                GhostFrame.UIStroke.Color = Library.AccentColor;
+                RenderStepped:Wait();
+            end;
+
+            -- snap real window to ghost position
+            Inst.Position = GhostFrame.Position;
+            GhostFrame:Destroy();
+        end;
+    end)
+end;
+
 function Library:AddToolTip(InfoStr, HoverInstance)
     local X, Y = Library:GetTextBounds(InfoStr, Library.Font, 14);
     local Tooltip = Library:Create('Frame', {
@@ -3179,7 +3232,7 @@ function Library:CreateWindow(...)
         Parent = ScreenGui;
     });
 
-    Library:MakeDraggable(Outer, 25);
+    Library:MakeDraggableOutline(Outer, 25);
 
     local Inner = Library:Create('Frame', {
         BackgroundColor3 = Library.MainColor;
@@ -3255,11 +3308,11 @@ function Library:CreateWindow(...)
         BackgroundColor3 = 'BackgroundColor';
     });
 
-    -- TabArea centered between layer2 top (Y=0) and TabContainer top (Y=30)
-    -- center = 0 + (30-0)/2 - 21/2 = 15 - 10.5 = 4.5 → 9 accounts for border pixel offsets
+    -- TabArea: true center between MainSectionInner top(Y=0) and TabContainer top(Y=30)
+    -- (30 - 21) / 2 = 4.5 → 5px
     local TabArea = Library:Create('Frame', {
         BackgroundTransparency = 1;
-        Position = UDim2.new(0, 8, 0, 9);
+        Position = UDim2.new(0, 8, 0, 5);
         Size = UDim2.new(1, -16, 0, 21);
         ZIndex = 1;
         Parent = MainSectionInner;
