@@ -189,55 +189,52 @@ function Library:MakeDraggable(Instance, Cutoff)
     end)
 end;
 
-local DraggingGui = Instance.new('ScreenGui');
-DraggingGui.Parent = CoreGui;
-DraggingGui.ZIndexBehavior = Enum.ZIndexBehavior.Global;
-DraggingGui.DisplayOrder = 999;
+local DraggingGui = Instance.new("ScreenGui", gethui and gethui() or CoreGui);
 
-function Library:MakeDraggableOutline(Inst, Cutoff)
-    Inst.Active = true;
+function Library:MakeDraggableOutline(Instance, Cutoff)
+    Instance.Active = true;
 
-    Inst.InputBegan:Connect(function(Input)
+    Instance.InputBegan:Connect(function(Input)
         if Input.UserInputType == Enum.UserInputType.MouseButton1 then
             local ObjPos = Vector2.new(
-                Mouse.X - Inst.AbsolutePosition.X,
-                Mouse.Y - Inst.AbsolutePosition.Y
+                Mouse.X - Instance.AbsolutePosition.X,
+                Mouse.Y - Instance.AbsolutePosition.Y
             );
 
             if ObjPos.Y > (Cutoff or 40) then
                 return;
             end;
 
-            -- ghost outline frame shown during drag
-            local GhostFrame = Library:Create('Frame', {
-                AnchorPoint = Inst.AnchorPoint;
-                BackgroundTransparency = 1;
-                Size = Inst.Size;
-                Position = Inst.Position;
+            local frame = Library:Create("Frame", {
                 Parent = DraggingGui;
+                AnchorPoint = Instance.AnchorPoint;
+                BackgroundTransparency = 1;
+                Size = Instance.Size;
+                Position = Instance.Position;
             });
-
-            Library:Create('UIStroke', {
-                Color = Library.AccentColor;
-                Thickness = 1;
-                Parent = GhostFrame;
+            local uistroke = Library:Create("UIStroke", {
+                Parent = frame;
+                Color = Library.AccentColor or Color3.new(0, 0, 0);
             });
 
             while InputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) do
-                GhostFrame.Position = UDim2.new(
+                frame.Position = UDim2.new(
                     0,
-                    Mouse.X - ObjPos.X + (Inst.Size.X.Offset * Inst.AnchorPoint.X),
+                    Mouse.X - ObjPos.X + (Instance.Size.X.Offset * Instance.AnchorPoint.X),
                     0,
-                    Mouse.Y - ObjPos.Y + (Inst.Size.Y.Offset * Inst.AnchorPoint.Y)
+                    Mouse.Y - ObjPos.Y + (Instance.Size.Y.Offset * Instance.AnchorPoint.Y)
                 );
-                -- keep stroke color synced with AccentColor in case it changes
-                GhostFrame.UIStroke.Color = Library.AccentColor;
+                uistroke.Color = Library.AccentColor or Color3.new(0, 0, 0);
                 RenderStepped:Wait();
             end;
 
-            -- snap real window to ghost position
-            Inst.Position = GhostFrame.Position;
-            GhostFrame:Destroy();
+            Instance.Position = UDim2.new(
+                0,
+                Mouse.X - ObjPos.X + (Instance.Size.X.Offset * Instance.AnchorPoint.X),
+                0,
+                Mouse.Y - ObjPos.Y + (Instance.Size.Y.Offset * Instance.AnchorPoint.Y)
+            );
+            frame:Destroy();
         end;
     end)
 end;
@@ -3308,18 +3305,16 @@ function Library:CreateWindow(...)
         BackgroundColor3 = 'BackgroundColor';
     });
 
-    -- TabArea: true center between MainSectionInner top(Y=0) and TabContainer top(Y=30)
-    -- (30 - 21) / 2 = 4.5 → 5px
     local TabArea = Library:Create('Frame', {
         BackgroundTransparency = 1;
-        Position = UDim2.new(0, 8, 0, 5);
+        Position = UDim2.new(0, 8, 0, 8);
         Size = UDim2.new(1, -16, 0, 21);
         ZIndex = 1;
         Parent = MainSectionInner;
     });
 
     local TabListLayout = Library:Create('UIListLayout', {
-        Padding = UDim.new(0, math.max(Config.TabPadding, 4));
+        Padding = UDim.new(0, Config.TabPadding);
         FillDirection = Enum.FillDirection.Horizontal;
         SortOrder = Enum.SortOrder.LayoutOrder;
         Parent = TabArea;
@@ -3356,12 +3351,9 @@ function Library:CreateWindow(...)
 
         local TabButtonWidth = Library:GetTextBounds(Name, Library.Font, 16);
 
-        -- TabButton Outer: mirrors groupbox BoxOuter exactly
-        -- width measured from text bounds + horizontal padding
         local TabButton = Library:Create('Frame', {
             BackgroundColor3 = Library.BackgroundColor;
             BorderColor3 = Library.OutlineColor;
-            BorderMode = Enum.BorderMode.Inset;
             Size = UDim2.new(0, TabButtonWidth + 8 + 4, 1, 0);
             ZIndex = 1;
             Parent = TabArea;
@@ -3372,54 +3364,21 @@ function Library:CreateWindow(...)
             BorderColor3 = 'OutlineColor';
         });
 
-        -- TabButtonInner: mirrors groupbox BoxInner exactly
-        -- inset 1px on all sides inside the outer border
-        local TabButtonInner = Library:Create('Frame', {
-            BackgroundColor3 = Library.BackgroundColor;
-            BorderColor3 = Color3.new(0, 0, 0);
-            Size = UDim2.new(1, -2, 1, -2);
-            Position = UDim2.new(0, 1, 0, 1);
-            ZIndex = 2;
+        local TabButtonLabel = Library:CreateLabel({
+            Position = UDim2.new(0, 0, 0, 0);
+            Size = UDim2.new(1, 0, 1, -1);
+            Text = Name;
+            ZIndex = 1;
             Parent = TabButton;
         });
 
-        Library:AddToRegistry(TabButtonInner, {
-            BackgroundColor3 = 'BackgroundColor';
-        });
-
-        -- Highlight: mirrors groupbox Highlight exactly
-        -- sits at the very top of TabButtonInner, hidden when inactive
-        local TabHighlight = Library:Create('Frame', {
-            BackgroundColor3 = Library.AccentColor;
-            BorderSizePixel = 0;
-            Size = UDim2.new(1, 0, 0, 2);
-            Position = UDim2.new(0, 0, 0, 0);
-            ZIndex = 3;
-            Visible = false;
-            Parent = TabButtonInner;
-        });
-
-        Library:AddToRegistry(TabHighlight, {
-            BackgroundColor3 = 'AccentColor';
-        });
-
-        -- Label: starts at Y=2 to sit below the highlight bar, same as groupbox label
-        local TabButtonLabel = Library:CreateLabel({
-            Position = UDim2.new(0, 0, 0, 2);
-            Size = UDim2.new(1, 0, 1, -2);
-            Text = Name;
-            ZIndex = 3;
-            Parent = TabButtonInner;
-        });
-
-        -- Blocker: hides the bottom border of TabButton when active so it merges with TabContainer
         local Blocker = Library:Create('Frame', {
             BackgroundColor3 = Library.MainColor;
             BorderSizePixel = 0;
             Position = UDim2.new(0, 0, 1, 0);
             Size = UDim2.new(1, 0, 0, 1);
             BackgroundTransparency = 1;
-            ZIndex = 4;
+            ZIndex = 3;
             Parent = TabButton;
         });
 
@@ -3490,34 +3449,16 @@ function Library:CreateWindow(...)
                 Tab:HideTab();
             end;
 
-            -- Active tab: bg matches MainColor (same as TabContainer bg) so it blends in
-            -- Blocker kills the bottom seam border
-            -- Inner bg also MainColor, Highlight visible
             Blocker.BackgroundTransparency = 0;
-
             TabButton.BackgroundColor3 = Library.MainColor;
             Library.RegistryMap[TabButton].Properties.BackgroundColor3 = 'MainColor';
-
-            TabButtonInner.BackgroundColor3 = Library.MainColor;
-            Library.RegistryMap[TabButtonInner].Properties.BackgroundColor3 = 'MainColor';
-
-            TabHighlight.Visible = true;
-
             TabFrame.Visible = true;
         end;
 
         function Tab:HideTab()
-            -- Inactive tab: bg BackgroundColor, no highlight
             Blocker.BackgroundTransparency = 1;
-
             TabButton.BackgroundColor3 = Library.BackgroundColor;
             Library.RegistryMap[TabButton].Properties.BackgroundColor3 = 'BackgroundColor';
-
-            TabButtonInner.BackgroundColor3 = Library.BackgroundColor;
-            Library.RegistryMap[TabButtonInner].Properties.BackgroundColor3 = 'BackgroundColor';
-
-            TabHighlight.Visible = false;
-
             TabFrame.Visible = false;
         end;
 
