@@ -1043,7 +1043,7 @@ do
         local DisplayLabel = Library:CreateLabel({
             Size = UDim2.new(1, 0, 1, 0);
             TextSize = 13;
-            Text = Info.Default;
+            Text = (Info.Default == 'None' or Info.Default == '') and '. . .' or Info.Default;
             TextWrapped = true;
             ZIndex = 8;
             Parent = PickInner;
@@ -1146,8 +1146,10 @@ do
             end;
 
             local State = KeyPicker:GetState();
+            local displayVal = (KeyPicker.Value == 'None' or KeyPicker.Value == '') and '. . .' or KeyPicker.Value;
 
-            ContainerLabel.Text = string.format('[%s] %s (%s)', KeyPicker.Value, Info.Text, KeyPicker.Mode);
+            DisplayLabel.Text = displayVal;
+            ContainerLabel.Text = string.format('[%s] %s (%s)', displayVal, Info.Text, KeyPicker.Mode);
 
             ContainerLabel.Visible = true;
             ContainerLabel.TextColor3 = State and Library.AccentColor or Library.FontColor;
@@ -1251,6 +1253,19 @@ do
                     local Key;
 
                     if Input.UserInputType == Enum.UserInputType.Keyboard then
+                        -- ESC = cancel + unbind
+                        if Input.KeyCode == Enum.KeyCode.Escape then
+                            Break = true;
+                            Picking = false;
+                            KeyPicker.Value = 'None';
+                            DisplayLabel.Text = '. . .';
+                            Library:SafeCallback(KeyPicker.ChangedCallback, Input.KeyCode)
+                            Library:SafeCallback(KeyPicker.Changed, Input.KeyCode)
+                            Library:AttemptSave();
+                            Event:Disconnect();
+                            KeyPicker:Update();
+                            return;
+                        end
                         Key = Input.KeyCode.Name;
                     elseif Input.UserInputType == Enum.UserInputType.MouseButton1 then
                         Key = 'MB1';
@@ -2537,7 +2552,7 @@ do
                 Str = Dropdown.Value or '';
             end;
 
-            ItemList.Text = (Str == '' and '--' or Str);
+            ItemList.Text = (Str == '' and '. . .' or Str);
         end;
 
         function Dropdown:GetActiveValues()
