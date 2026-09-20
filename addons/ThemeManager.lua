@@ -118,7 +118,7 @@ local ThemeManager = {} do
 			self:ApplyTheme(name)
 		end)
 
-		-- [Overwrite theme] [Delete theme]  ← ダブルクリック確認付き
+		-- [Overwrite theme] [Delete theme]  ← ダブルクリック "Are you sure?" 確認付き
 		do
 			local overwriteClicks = 0
 			local deleteClicks    = 0
@@ -133,8 +133,10 @@ local ThemeManager = {} do
 					overwriteClicks = 0
 					self:SaveCustomTheme(name)
 					self.Library:Notify(string.format('Overwrote theme %q', name))
+					Options.ThemeManager_CustomThemeList:SetValues(self:ReloadCustomThemes())
+					Options.ThemeManager_CustomThemeList:SetValue(nil)
 				else
-					self.Library:Notify('Click again to confirm overwrite', 2)
+					self.Library:Notify('Are you sure? Click again to overwrite', 2)
 					task.delay(2, function() overwriteClicks = 0 end)
 				end
 			end):AddButton('Delete theme', function()
@@ -145,15 +147,18 @@ local ThemeManager = {} do
 				deleteClicks = deleteClicks + 1
 				if deleteClicks >= 2 then
 					deleteClicks = 0
-					local path = self.Folder .. '/themes/' .. name
+					-- ReloadCustomThemes が .json なし名前を返すので .json を補完
+					local path = self.Folder .. '/themes/' .. name .. '.json'
 					if isfile(path) then
 						delfile(path)
 						self.Library:Notify(string.format('Deleted theme %q', name))
 					end
-					Options.ThemeManager_CustomThemeList:SetValues(self:ReloadCustomThemes())
-					Options.ThemeManager_CustomThemeList:SetValue(nil)
+					task.defer(function()
+						Options.ThemeManager_CustomThemeList:SetValues(self:ReloadCustomThemes())
+						Options.ThemeManager_CustomThemeList:SetValue(nil)
+					end)
 				else
-					self.Library:Notify('Click again to confirm delete', 2)
+					self.Library:Notify('Are you sure? Click again to delete', 2)
 					task.delay(2, function() deleteClicks = 0 end)
 				end
 			end)
@@ -194,7 +199,9 @@ local ThemeManager = {} do
 	end
 
 	function ThemeManager:GetCustomTheme(file)
-		local path = self.Folder .. '/themes/' .. file
+		-- ReloadCustomThemes が .json なし名前を返すので .json を補完
+		-- .json が既についている場合は二重にしない
+		local path = self.Folder .. '/themes/' .. (file:sub(-5) == '.json' and file or file .. '.json')
 		if not isfile(path) then
 			return nil
 		end
@@ -231,16 +238,18 @@ local ThemeManager = {} do
 		for i = 1, #list do
 			local file = list[i]
 			if file:sub(-5) == '.json' then
-				local pos = file:find('.json', 1, true)
-				local char = file:sub(pos, pos)
+				local pos   = file:find('.json', 1, true)
+				local start = pos
+				local char  = file:sub(pos, pos)
 
 				while char ~= '/' and char ~= '\\' and char ~= '' do
-					pos = pos - 1
+					pos  = pos - 1
 					char = file:sub(pos, pos)
 				end
 
 				if char == '/' or char == '\\' then
-					table.insert(out, file:sub(pos + 1))
+					-- SaveManager と同じく .json を除いた名前を返す
+					table.insert(out, file:sub(pos + 1, start - 1))
 				end
 			end
 		end
