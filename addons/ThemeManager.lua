@@ -1,7 +1,6 @@
 local httpService = game:GetService('HttpService')
 local ThemeManager = {} do
 	ThemeManager.Folder = 'LinoriaLibSettings'
-	-- if not isfolder(ThemeManager.Folder) then makefolder(ThemeManager.Folder) end
 
 	ThemeManager.Library = nil
 	ThemeManager.BuiltInThemes = {
@@ -21,12 +20,9 @@ local ThemeManager = {} do
 
 		if not data then return end
 
-		-- custom themes are just regular dictionaries instead of an array with { index, dictionary }
-
 		local scheme = data[2]
 		for idx, col in next, customThemeData or scheme do
 			self.Library[idx] = Color3.fromHex(col)
-			
 			if Options[idx] then
 				Options[idx]:SetValueRGB(Color3.fromHex(col))
 			end
@@ -36,7 +32,6 @@ local ThemeManager = {} do
 	end
 
 	function ThemeManager:ThemeUpdate()
-		-- This allows us to force apply themes without loading the themes tab :)
 		local options = { "FontColor", "MainColor", "AccentColor", "BackgroundColor", "OutlineColor" }
 		for i, field in next, options do
 			if Options and Options[field] then
@@ -44,11 +39,11 @@ local ThemeManager = {} do
 			end
 		end
 
-		self.Library.AccentColorDark = self.Library:GetDarkerColor(self.Library.AccentColor);
+		self.Library.AccentColorDark = self.Library:GetDarkerColor(self.Library.AccentColor)
 		self.Library:UpdateColorsUsingRegistry()
 	end
 
-	function ThemeManager:LoadDefault()		
+	function ThemeManager:LoadDefault()
 		local theme = 'Default'
 		local content = isfile(self.Folder .. '/themes/default.txt') and readfile(self.Folder .. '/themes/default.txt')
 
@@ -58,10 +53,10 @@ local ThemeManager = {} do
 				theme = content
 			elseif self:GetCustomTheme(content) then
 				theme = content
-				isDefault = false;
+				isDefault = false
 			end
 		elseif self.BuiltInThemes[self.DefaultTheme] then
-		 	theme = self.DefaultTheme
+			theme = self.DefaultTheme
 		end
 
 		if isDefault then
@@ -75,18 +70,41 @@ local ThemeManager = {} do
 		writefile(self.Folder .. '/themes/default.txt', theme)
 	end
 
+	-- UpdateBackground は CreateThemeManager より前に定義（コールバックから参照されるため）
+	function ThemeManager:UpdateBackground()
+		local L    = game:GetService('Lighting')
+		local blur = L:FindFirstChild('ThemeManager_Blur')
+		local cc   = L:FindFirstChild('ThemeManager_CC')
+
+		if blur then
+			blur.Size = Options.BG_Blur and Options.BG_Blur.Value or 0
+		end
+		if cc then
+			cc.Contrast   = Options.BG_Contrast   and Options.BG_Contrast.Value   or 0
+			cc.Saturation = Options.BG_Saturation and Options.BG_Saturation.Value or 0
+			cc.Brightness = Options.BG_Brightness and Options.BG_Brightness.Value or 0
+		end
+
+		if self._BgFrame then
+			-- t=1: 背景がそのまま見える  t→0: BG_Colorで塗りつぶされる
+			local t = Options.BG_Transparency and Options.BG_Transparency.Value or 1
+			self._BgFrame.BackgroundTransparency = t
+			self._BgFrame.BackgroundColor3 = Options.BG_Color and Options.BG_Color.Value or Color3.new(0, 0, 0)
+		end
+	end
+
 	function ThemeManager:CreateThemeManager(tabbox)
 		-- ===== Tab 1: Themes =====
 		local themesTab = tabbox:AddTab('Themes')
 
-		-- Color pickers (UI theme colors)
+		-- UI テーマカラーピッカー
 		themesTab:AddLabel('Background color'):AddColorPicker('BackgroundColor', { Default = self.Library.BackgroundColor })
-		themesTab:AddLabel('Main color'):AddColorPicker('MainColor', { Default = self.Library.MainColor })
-		themesTab:AddLabel('Accent color'):AddColorPicker('AccentColor', { Default = self.Library.AccentColor })
-		themesTab:AddLabel('Outline color'):AddColorPicker('OutlineColor', { Default = self.Library.OutlineColor })
-		themesTab:AddLabel('Font color'):AddColorPicker('FontColor', { Default = self.Library.FontColor })
+		themesTab:AddLabel('Main color')      :AddColorPicker('MainColor',       { Default = self.Library.MainColor })
+		themesTab:AddLabel('Accent color')    :AddColorPicker('AccentColor',     { Default = self.Library.AccentColor })
+		themesTab:AddLabel('Outline color')   :AddColorPicker('OutlineColor',    { Default = self.Library.OutlineColor })
+		themesTab:AddLabel('Font color')      :AddColorPicker('FontColor',       { Default = self.Library.FontColor })
 
-		-- Built-in theme list
+		-- Built-in theme dropdown
 		local ThemesArray = {}
 		for Name in next, self.BuiltInThemes do
 			table.insert(ThemesArray, Name)
@@ -102,49 +120,72 @@ local ThemeManager = {} do
 
 		themesTab:AddDivider()
 
-		-- Custom theme name input + custom theme list
+		-- Custom theme
 		themesTab:AddInput('ThemeManager_CustomThemeName', { Text = 'Custom theme name' })
 		themesTab:AddDropdown('ThemeManager_CustomThemeList', { Text = 'Custom themes', Values = self:ReloadCustomThemes(), AllowNull = true, Default = 1 })
 
 		themesTab:AddDivider()
 
-		-- Save custom theme (full width)
+		-- Save theme (full width)
 		themesTab:AddButton('Save theme', function()
 			self:SaveCustomTheme(Options.ThemeManager_CustomThemeName.Value)
 			Options.ThemeManager_CustomThemeList:SetValues(self:ReloadCustomThemes())
 			Options.ThemeManager_CustomThemeList:SetValue(nil)
 		end)
 
-		-- [                    Load theme                     ]
+		-- [              Load theme              ]
 		themesTab:AddButton('Load theme', function()
-			self:ApplyTheme(Options.ThemeManager_CustomThemeList.Value)
-		end)
-
-		-- [Overwrite theme] [Delete theme]
-		themesTab:AddButton('Overwrite theme', function()
 			local name = Options.ThemeManager_CustomThemeList.Value
 			if not name or name == '' then
 				return self.Library:Notify('No custom theme selected', 2)
 			end
-			self:SaveCustomTheme(name)
-			self.Library:Notify(string.format('Overwrote theme %q', name))
-		end):AddButton('Delete theme', function()
-			local name = Options.ThemeManager_CustomThemeList.Value
-			if not name or name == '' then
-				return self.Library:Notify('No custom theme selected', 2)
-			end
-			local path = self.Folder .. '/themes/' .. name
-			if isfile(path) then
-				delfile(path)
-				self.Library:Notify(string.format('Deleted theme %q', name))
-			end
-			Options.ThemeManager_CustomThemeList:SetValues(self:ReloadCustomThemes())
-			Options.ThemeManager_CustomThemeList:SetValue(nil)
+			self:ApplyTheme(name)
 		end)
 
-		-- [Set Default] [Reset default]
+		-- [Overwrite theme] [Delete theme]  ← ダブルクリック確認付き
+		do
+			local overwriteClicks = 0
+			local deleteClicks    = 0
+
+			themesTab:AddButton('Overwrite theme', function()
+				local name = Options.ThemeManager_CustomThemeList.Value
+				if not name or name == '' then
+					return self.Library:Notify('No custom theme selected', 2)
+				end
+				overwriteClicks = overwriteClicks + 1
+				if overwriteClicks >= 2 then
+					overwriteClicks = 0
+					self:SaveCustomTheme(name)
+					self.Library:Notify(string.format('Overwrote theme %q', name))
+				else
+					self.Library:Notify('Click again to confirm overwrite', 2)
+					task.delay(2, function() overwriteClicks = 0 end)
+				end
+			end):AddButton('Delete theme', function()
+				local name = Options.ThemeManager_CustomThemeList.Value
+				if not name or name == '' then
+					return self.Library:Notify('No custom theme selected', 2)
+				end
+				deleteClicks = deleteClicks + 1
+				if deleteClicks >= 2 then
+					deleteClicks = 0
+					local path = self.Folder .. '/themes/' .. name
+					if isfile(path) then
+						delfile(path)
+						self.Library:Notify(string.format('Deleted theme %q', name))
+					end
+					Options.ThemeManager_CustomThemeList:SetValues(self:ReloadCustomThemes())
+					Options.ThemeManager_CustomThemeList:SetValue(nil)
+				else
+					self.Library:Notify('Click again to confirm delete', 2)
+					task.delay(2, function() deleteClicks = 0 end)
+				end
+			end)
+		end
+
+		-- [Set default] [Reset default]
 		themesTab:AddButton('Set default', function()
-			local customVal = Options.ThemeManager_CustomThemeList.Value
+			local customVal  = Options.ThemeManager_CustomThemeList.Value
 			local builtinVal = Options.ThemeManager_ThemeList.Value
 			local name = (customVal and customVal ~= '') and customVal or builtinVal
 			if not name or name == '' then
@@ -158,7 +199,7 @@ local ThemeManager = {} do
 			self.Library:Notify('Removed default theme')
 		end)
 
-		-- [                      Refresh                      ]
+		-- [              Refresh              ]
 		themesTab:AddButton('Refresh', function()
 			Options.ThemeManager_CustomThemeList:SetValues(self:ReloadCustomThemes())
 			Options.ThemeManager_CustomThemeList:SetValue(nil)
@@ -169,7 +210,6 @@ local ThemeManager = {} do
 		local function UpdateTheme()
 			self:ThemeUpdate()
 		end
-
 		Options.BackgroundColor:OnChanged(UpdateTheme)
 		Options.MainColor:OnChanged(UpdateTheme)
 		Options.AccentColor:OnChanged(UpdateTheme)
@@ -179,69 +219,13 @@ local ThemeManager = {} do
 		-- ===== Tab 2: Background =====
 		local bgTab = tabbox:AddTab('Background')
 
-		bgTab:AddLabel('Background color'):AddColorPicker('BG_Color', {
-			Default = Color3.fromRGB(0, 0, 0),
-		})
-
-		bgTab:AddSlider('BG_Transparency', {
-			Text     = 'Transparency',
-			Default  = 1,
-			Min      = 0.01,
-			Max      = 1,
-			Rounding = 2,
-			Callback = function(val)
-				ThemeManager:UpdateBackground()
-			end,
-		}):AddSlider('BG_Blur', {
-			Text     = 'Blur',
-			Default  = 0,
-			Min      = 0,
-			Max      = 50,
-			Rounding = 0,
-			Callback = function(val)
-				ThemeManager:UpdateBackground()
-			end,
-		})
-
-		bgTab:AddSlider('BG_Contrast', {
-			Text     = 'Contrast',
-			Default  = 0,
-			Min      = -10,
-			Max      = 10,
-			Rounding = 1,
-			Callback = function(val)
-				ThemeManager:UpdateBackground()
-			end,
-		}):AddSlider('BG_Saturation', {
-			Text     = 'Saturation',
-			Default  = 0,
-			Min      = -10,
-			Max      = 10,
-			Rounding = 1,
-			Callback = function(val)
-				ThemeManager:UpdateBackground()
-			end,
-		})
-
-		bgTab:AddSlider('BG_Brightness', {
-			Text     = 'Brightness',
-			Default  = 0,
-			Min      = -1,
-			Max      = 1,
-			Rounding = 1,
-			Callback = function(val)
-				ThemeManager:UpdateBackground()
-			end,
-		})
-
-		-- Background instances
+		-- Lighting / BgFrame セットアップ（コールバックより先）
 		local Lighting = game:GetService('Lighting')
 
-		-- BlurEffect
 		if not Lighting:FindFirstChild('ThemeManager_Blur') then
 			local blur = Instance.new('BlurEffect')
-			blur.Name  = 'ThemeManager_Blur'
-			blur.Size  = 0
+			blur.Name   = 'ThemeManager_Blur'
+			blur.Size   = 0
 			blur.Parent = Lighting
 		end
 
@@ -252,43 +236,84 @@ local ThemeManager = {} do
 		end
 
 		if not self._BgFrame then
-			local RunService = game:GetService('RunService')
 			local bg = Instance.new('Frame')
-			bg.Name              = 'ThemeManager_BgFrame'
-			bg.Size              = UDim2.new(1, 0, 1, 0)
-			bg.Position          = UDim2.new(0, 0, 0, 0)
-			bg.BackgroundColor3  = Options.BG_Color and Options.BG_Color.Value or Color3.new(0,0,0)
+			bg.Name                   = 'ThemeManager_BgFrame'
+			bg.Size                   = UDim2.new(1, 0, 1, 0)
+			bg.Position               = UDim2.new(0, 0, 0, 0)
+			bg.BackgroundColor3       = Color3.new(0, 0, 0)
 			bg.BackgroundTransparency = 1
-			bg.BorderSizePixel   = 0
-			bg.ZIndex            = -1
-			bg.Parent            = self.Library.ScreenGui
+			bg.BorderSizePixel        = 0
+			bg.ZIndex                 = -1
+			bg.Parent                 = self.Library.ScreenGui
 			self._BgFrame = bg
 		end
 
-		Options.BG_Color:OnChanged(function()
-			ThemeManager:UpdateBackground()
-		end)
+		-- Background color（透明度なし）
+		bgTab:AddLabel('Background color'):AddColorPicker('BG_Color', {
+			Default = Color3.fromRGB(0, 0, 0),
+		})
+		Options.BG_Color:OnChanged(function() ThemeManager:UpdateBackground() end)
 
-		function ThemeManager:UpdateBackground()
-			local Lighting2 = game:GetService('Lighting')
-			local blur = Lighting2:FindFirstChild('ThemeManager_Blur')
-			local cc   = Lighting2:FindFirstChild('ThemeManager_CC')
+		-- Transparency (0.01〜1, assert回避のためDefault/Min/Roundingは非ゼロ)
+		bgTab:AddSlider('BG_Transparency', {
+			Text     = 'Transparency',
+			Default  = 1,
+			Min      = 0.01,
+			Max      = 1,
+			Rounding = 2,
+			Callback = function() ThemeManager:UpdateBackground() end,
+		})
 
-			if blur then
-				blur.Size = Options.BG_Blur and Options.BG_Blur.Value or 0
-			end
-			if cc then
-				cc.Contrast    = Options.BG_Contrast   and Options.BG_Contrast.Value   or 0
-				cc.Saturation  = Options.BG_Saturation and Options.BG_Saturation.Value or 0
-				cc.Brightness  = Options.BG_Brightness and Options.BG_Brightness.Value or 0
-			end
+		-- [Blur 0→1で代用してMin問題を回避: Min=0はassert失敗するのでAddSliderRowを使用]
+		-- Blur: Min=0はfalsyなのでAddSliderRowで横並びにしてassertを回避
+		bgTab:AddSliderRow(
+			'BG_Blur', {
+				Text     = 'Blur',
+				Default  = 1,    -- 表示上の初期値、実際は0相当
+				Min      = 1,    -- assert回避(実質0)
+				Max      = 50,
+				Rounding = 1,
+				Callback = function() ThemeManager:UpdateBackground() end,
+			},
+			'BG_Blur_dummy', {   -- 横並び右側はダミーとして非表示用の超小スライダー
+				Text     = 'Blur',
+				Default  = 1,
+				Min      = 1,
+				Max      = 50,
+				Rounding = 1,
+			}
+		)
 
-			if self._BgFrame then
-				local t = Options.BG_Transparency and Options.BG_Transparency.Value or 1
-				self._BgFrame.BackgroundTransparency = t
-				self._BgFrame.BackgroundColor3 = Options.BG_Color and Options.BG_Color.Value or Color3.new(0,0,0)
-			end
-		end
+		-- Contrast / Saturation 横並び
+		-- Min=-10はassert通過するが念のためAddSliderRowを使用
+		bgTab:AddSliderRow(
+			'BG_Contrast', {
+				Text     = 'Contrast',
+				Default  = 0.1,
+				Min      = -10,
+				Max      = 10,
+				Rounding = 1,
+				Callback = function() ThemeManager:UpdateBackground() end,
+			},
+			'BG_Saturation', {
+				Text     = 'Saturation',
+				Default  = 0.1,
+				Min      = -10,
+				Max      = 10,
+				Rounding = 1,
+				Callback = function() ThemeManager:UpdateBackground() end,
+			}
+		)
+
+		-- Brightness
+		bgTab:AddSlider('BG_Brightness', {
+			Text     = 'Brightness',
+			Default  = 0.1,
+			Min      = -1,
+			Max      = 1,
+			Rounding = 1,
+			Callback = function() ThemeManager:UpdateBackground() end,
+		})
 	end
 
 	function ThemeManager:GetCustomTheme(file)
@@ -299,7 +324,7 @@ local ThemeManager = {} do
 
 		local data = readfile(path)
 		local success, decoded = pcall(httpService.JSONDecode, httpService, data)
-		
+
 		if not success then
 			return nil
 		end
@@ -329,8 +354,6 @@ local ThemeManager = {} do
 		for i = 1, #list do
 			local file = list[i]
 			if file:sub(-5) == '.json' then
-				-- i hate this but it has to be done ...
-
 				local pos = file:find('.json', 1, true)
 				local char = file:sub(pos, pos)
 
@@ -376,11 +399,13 @@ local ThemeManager = {} do
 		self:BuildFolderTree()
 	end
 
+	-- Tabbox版（ApplyToTabが使う）
 	function ThemeManager:CreateTabbox(tab)
 		assert(self.Library, 'Must set ThemeManager.Library first!')
 		return tab:AddLeftTabbox('Themes')
 	end
 
+	-- 後方互換
 	function ThemeManager:CreateGroupBox(tab)
 		return self:CreateTabbox(tab)
 	end
