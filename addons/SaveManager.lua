@@ -201,17 +201,19 @@ local SaveManager = {} do
 	function SaveManager:BuildConfigSection(tab)
 		assert(self.Library, 'Must set SaveManager.Library')
 
-		local section = tab:AddRightGroupbox('Configuration')
+		local tabbox = tab:AddRightTabbox('Configuration')
 
-		-- Config list dropdown (区切りなし、直接配置)
-		section:AddDropdown('SaveManager_ConfigList', {
-			Text     = 'Config list',
-			Values   = self:RefreshConfigList(),
+		-- ===== Tab 1: Menu (Config management) =====
+		local menuTab = tabbox:AddTab('Menu')
+
+		menuTab:AddDropdown('SaveManager_ConfigList', {
+			Text      = 'Config list',
+			Values    = self:RefreshConfigList(),
 			AllowNull = true,
 		})
 
-		-- Row 1: [Create config] [Load config]
-		section:AddButton('Create config', function()
+		-- [Create config] [Load config]
+		menuTab:AddButton('Create config', function()
 			local name = Options.SaveManager_ConfigList.Value
 
 			if not name or name:gsub(' ', '') == '' then
@@ -237,8 +239,8 @@ local SaveManager = {} do
 			self.Library:Notify(string.format('Loaded config %q', name))
 		end)
 
-		-- Row 2: [Overwrite config] [Delete config]
-		section:AddButton('Overwrite config', function()
+		-- [Overwrite config] [Delete config]
+		menuTab:AddButton('Overwrite config', function()
 			local name = Options.SaveManager_ConfigList.Value
 
 			local success, err = self:Save(name)
@@ -263,14 +265,14 @@ local SaveManager = {} do
 			Options.SaveManager_ConfigList:SetValue(nil)
 		end)
 
-		-- Row 3: [Refresh list] (full width)
-		section:AddButton('Refresh list', function()
+		-- [Refresh list]
+		menuTab:AddButton('Refresh list', function()
 			Options.SaveManager_ConfigList:SetValues(self:RefreshConfigList())
 			Options.SaveManager_ConfigList:SetValue(nil)
 		end)
 
-		-- Row 4: [Set autoload] [Remove autoload]
-		section:AddButton('Set autoload', function()
+		-- [Set autoload] [Remove autoload]
+		menuTab:AddButton('Set autoload', function()
 			local name = Options.SaveManager_ConfigList.Value
 			if not name then
 				return self.Library:Notify('No config selected', 2)
@@ -286,15 +288,80 @@ local SaveManager = {} do
 			self.Library:Notify('Removed autoload config')
 		end)
 
-		-- Row 5: Current autoload label
-		SaveManager.AutoloadLabel = section:AddLabel('Current autoload config: none', true)
+		SaveManager.AutoloadLabel = menuTab:AddLabel('Current autoload config: none', true)
 
 		if isfile(self.Folder .. '/settings/autoload.txt') then
 			local name = readfile(self.Folder .. '/settings/autoload.txt')
 			SaveManager.AutoloadLabel:SetText('Current autoload config: ' .. name)
 		end
 
-		SaveManager:SetIgnoreIndexes({ 'SaveManager_ConfigList' })
+		-- ===== Tab 2: Notification settings =====
+		local notifTab = tabbox:AddTab('Notification')
+
+		-- Position X / Y (横並び)
+		notifTab:AddSlider('SaveManager_NotifPosX', {
+			Text    = 'Position X',
+			Default = 0,
+			Min     = 1,
+			Max     = 100,
+			Rounding = 0,
+			Suffix  = '%',
+			Callback = function(val)
+				local area = self.Library.NotificationArea
+				if area then
+					area.Position = UDim2.new(val / 100, 0, area.Position.Y.Scale, 0)
+				end
+			end,
+		}):AddSlider('SaveManager_NotifPosY', {
+			Text    = 'Position Y',
+			Default = 0,
+			Min     = 1,
+			Max     = 100,
+			Rounding = 0,
+			Suffix  = '%',
+			Callback = function(val)
+				local area = self.Library.NotificationArea
+				if area then
+					area.Position = UDim2.new(area.Position.X.Scale, 0, val / 100, 0)
+				end
+			end,
+		})
+
+		-- Transparency (full-width)
+		notifTab:AddSlider('SaveManager_NotifTransparency', {
+			Text    = 'Transparency',
+			Default = 100,
+			Min     = 1,
+			Max     = 100,
+			Rounding = 0,
+			Suffix  = '%',
+			Callback = function(val)
+				SaveManager._NotifTransparency = 1 - (val / 100)
+			end,
+		})
+
+		-- Accent bar position (dropdown)
+		notifTab:AddDropdown('SaveManager_NotifAccentSide', {
+			Text   = 'Accent bar side',
+			Values = { 'Left', 'Right', 'Top', 'Bottom' },
+			Default = 1,
+			Callback = function(val)
+				SaveManager._NotifAccentSide = val
+			end,
+		})
+
+		-- Send test notification
+		notifTab:AddButton('Send Notification', function()
+			self.Library:Notify('Test notification', 3)
+		end)
+
+		SaveManager:SetIgnoreIndexes({
+			'SaveManager_ConfigList',
+			'SaveManager_NotifPosX',
+			'SaveManager_NotifPosY',
+			'SaveManager_NotifTransparency',
+			'SaveManager_NotifAccentSide',
+		})
 	end
 
 	SaveManager:BuildFolderTree()
