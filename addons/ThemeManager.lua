@@ -102,11 +102,20 @@ local ThemeManager = {} do
 
 		themesTab:AddDivider()
 
+		-- カスタムテーマ一覧を再読み込みして選択をクリアする
+		-- ※ Dropdown:BuildDropdownList は値が1つ以上ないと Display を呼ばないので、
+		--   最後の1個を消して一覧が空になった時に古い名前が残る → 手動で Display を呼ぶ
+		local function RefreshCustomThemeList()
+			local list = Options.ThemeManager_CustomThemeList
+			list:SetValues(self:ReloadCustomThemes())
+			list:SetValue(nil)
+			list:Display()
+		end
+
 		-- Save theme (full width)
 		themesTab:AddButton('Save theme', function()
 			self:SaveCustomTheme(Options.ThemeManager_CustomThemeName.Value)
-			Options.ThemeManager_CustomThemeList:SetValues(self:ReloadCustomThemes())
-			Options.ThemeManager_CustomThemeList:SetValue(nil)
+			RefreshCustomThemeList()
 		end)
 
 		-- [              Load theme              ]
@@ -118,51 +127,39 @@ local ThemeManager = {} do
 			self:ApplyTheme(name)
 		end)
 
-		-- [Overwrite theme] [Delete theme]  ← ダブルクリック "Are you sure?" 確認付き
-		do
-			local overwriteClicks = 0
-			local deleteClicks    = 0
+		-- [Overwrite theme] [Delete theme]  ← LinoriaLib 標準の DoubleClick で2回押し確認
+		themesTab:AddButton({
+			Text = 'Overwrite theme',
+			DoubleClick = true,
+			Func = function()
+				local name = Options.ThemeManager_CustomThemeList.Value
+				if not name or name == '' then
+					return self.Library:Notify('No custom theme selected', 2)
+				end
 
-			themesTab:AddButton('Overwrite theme', function()
+				self:SaveCustomTheme(name)
+				self.Library:Notify(string.format('Overwrote theme %q', name))
+				RefreshCustomThemeList()
+			end,
+		}):AddButton({
+			Text = 'Delete theme',
+			DoubleClick = true,
+			Func = function()
 				local name = Options.ThemeManager_CustomThemeList.Value
 				if not name or name == '' then
 					return self.Library:Notify('No custom theme selected', 2)
 				end
-				overwriteClicks = overwriteClicks + 1
-				if overwriteClicks >= 2 then
-					overwriteClicks = 0
-					self:SaveCustomTheme(name)
-					self.Library:Notify(string.format('Overwrote theme %q', name))
-					Options.ThemeManager_CustomThemeList:SetValues(self:ReloadCustomThemes())
-					Options.ThemeManager_CustomThemeList:SetValue(nil)
-				else
-					self.Library:Notify('Are you sure? Click again to overwrite', 2)
-					task.delay(2, function() overwriteClicks = 0 end)
+
+				-- ReloadCustomThemes が .json なし名前を返すので .json を補完
+				local path = self.Folder .. '/themes/' .. name .. '.json'
+				if isfile(path) then
+					delfile(path)
+					self.Library:Notify(string.format('Deleted theme %q', name))
 				end
-			end):AddButton('Delete theme', function()
-				local name = Options.ThemeManager_CustomThemeList.Value
-				if not name or name == '' then
-					return self.Library:Notify('No custom theme selected', 2)
-				end
-				deleteClicks = deleteClicks + 1
-				if deleteClicks >= 2 then
-					deleteClicks = 0
-					-- ReloadCustomThemes が .json なし名前を返すので .json を補完
-					local path = self.Folder .. '/themes/' .. name .. '.json'
-					if isfile(path) then
-						delfile(path)
-						self.Library:Notify(string.format('Deleted theme %q', name))
-					end
-					task.defer(function()
-						Options.ThemeManager_CustomThemeList:SetValues(self:ReloadCustomThemes())
-						Options.ThemeManager_CustomThemeList:SetValue(nil)
-					end)
-				else
-					self.Library:Notify('Are you sure? Click again to delete', 2)
-					task.delay(2, function() deleteClicks = 0 end)
-				end
-			end)
-		end
+
+				RefreshCustomThemeList()
+			end,
+		})
 
 		-- [Set default] [Reset default]
 		themesTab:AddButton('Set default', function()
@@ -182,8 +179,7 @@ local ThemeManager = {} do
 
 		-- [              Refresh              ]
 		themesTab:AddButton('Refresh', function()
-			Options.ThemeManager_CustomThemeList:SetValues(self:ReloadCustomThemes())
-			Options.ThemeManager_CustomThemeList:SetValue(nil)
+			RefreshCustomThemeList()
 		end)
 
 		ThemeManager:LoadDefault()
