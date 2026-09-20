@@ -201,10 +201,8 @@ local SaveManager = {} do
 	function SaveManager:BuildConfigSection(tab)
 		assert(self.Library, 'Must set SaveManager.Library')
 
-		local tabbox = tab:AddRightTabbox('Configuration')
-
-		-- ===== Tab 1: Menu =====
-		local menuTab = tabbox:AddTab('Menu')
+		local section = tab:AddRightGroupbox('Configuration')
+		local menuTab = section
 
 		menuTab:AddDropdown('SaveManager_ConfigList', {
 			Text      = 'Config list',
@@ -295,75 +293,7 @@ local SaveManager = {} do
 			SaveManager.AutoloadLabel:SetText('Current autoload config: ' .. name)
 		end
 
-		-- ===== Tab 2: Notification =====
-		local notifTab = tabbox:AddTab('Notification')
-
-		-- [Position X] [Position Y] 横並び
-		notifTab:AddSliderRow(
-			'SaveManager_NotifPosX', {
-				Text     = 'Position X',
-				Default  = 0.01,  -- assert回避(Scale 0 = 左端)
-				Min      = 0.01,
-				Max      = 1,
-				Rounding = 2,
-				Suffix   = '',
-				Callback = function(val)
-					local area = self.Library and self.Library.NotificationArea
-					if area then
-						area.Position = UDim2.new(val, 0, area.Position.Y.Scale, 0)
-					end
-				end,
-			},
-			'SaveManager_NotifPosY', {
-				Text     = 'Position Y',
-				Default  = 0.01,
-				Min      = 0.01,
-				Max      = 1,
-				Rounding = 2,
-				Suffix   = '',
-				Callback = function(val)
-					local area = self.Library and self.Library.NotificationArea
-					if area then
-						area.Position = UDim2.new(area.Position.X.Scale, 0, val, 0)
-					end
-				end,
-			}
-		)
-
-		-- [Transparency]
-		notifTab:AddSlider('SaveManager_NotifTransparency', {
-			Text     = 'Transparency',
-			Default  = 1,
-			Min      = 0.01,
-			Max      = 1,
-			Rounding = 2,
-			Callback = function(val)
-				SaveManager._NotifTransparency = 1 - val
-			end,
-		})
-
-		-- Accent bar side dropdown
-		notifTab:AddDropdown('SaveManager_NotifAccentSide', {
-			Text    = 'Accent bar side',
-			Values  = { 'Left', 'Right', 'Top', 'Bottom' },
-			Default = 1,
-			Callback = function(val)
-				SaveManager._NotifAccentSide = val
-			end,
-		})
-
-		-- Send test notification
-		notifTab:AddButton('Send Notification', function()
-			self.Library:Notify('Test notification', 3)
-		end)
-
-		SaveManager:SetIgnoreIndexes({
-			'SaveManager_ConfigList',
-			'SaveManager_NotifPosX',
-			'SaveManager_NotifPosY',
-			'SaveManager_NotifTransparency',
-			'SaveManager_NotifAccentSide',
-		})
+		SaveManager:SetIgnoreIndexes({ 'SaveManager_ConfigList' })
 	end
 
 	SaveManager:BuildFolderTree()
