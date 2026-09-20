@@ -1,149 +1,377 @@
 local httpService = game:GetService('HttpService')
+local ThemeManager = {} do
+	ThemeManager.Folder = 'LinoriaLibSettings'
+	-- if not isfolder(ThemeManager.Folder) then makefolder(ThemeManager.Folder) end
 
-local SaveManager = {} do
-	SaveManager.Folder = 'LinoriaLibSettings'
-	SaveManager.Ignore = {}
-	SaveManager.Parser = {
-		Toggle = {
-			Save = function(idx, object) 
-				return { type = 'Toggle', idx = idx, value = object.Value } 
-			end,
-			Load = function(idx, data)
-				if Toggles[idx] then 
-					Toggles[idx]:SetValue(data.value)
-				end
-			end,
-		},
-		Slider = {
-			Save = function(idx, object)
-				return { type = 'Slider', idx = idx, value = tostring(object.Value) }
-			end,
-			Load = function(idx, data)
-				if Options[idx] then 
-					Options[idx]:SetValue(data.value)
-				end
-			end,
-		},
-		Dropdown = {
-			Save = function(idx, object)
-				return { type = 'Dropdown', idx = idx, value = object.Value, mutli = object.Multi }
-			end,
-			Load = function(idx, data)
-				if Options[idx] then 
-					Options[idx]:SetValue(data.value)
-				end
-			end,
-		},
-		ColorPicker = {
-			Save = function(idx, object)
-				return { type = 'ColorPicker', idx = idx, value = object.Value:ToHex(), transparency = object.Transparency }
-			end,
-			Load = function(idx, data)
-				if Options[idx] then 
-					Options[idx]:SetValueRGB(Color3.fromHex(data.value), data.transparency)
-				end
-			end,
-		},
-		KeyPicker = {
-			Save = function(idx, object)
-				return { type = 'KeyPicker', idx = idx, mode = object.Mode, key = object.Value }
-			end,
-			Load = function(idx, data)
-				if Options[idx] then 
-					Options[idx]:SetValue({ data.key, data.mode })
-				end
-			end,
-		},
-
-		Input = {
-			Save = function(idx, object)
-				return { type = 'Input', idx = idx, text = object.Value }
-			end,
-			Load = function(idx, data)
-				if Options[idx] and type(data.text) == 'string' then
-					Options[idx]:SetValue(data.text)
-				end
-			end,
-		},
+	ThemeManager.Library = nil
+	ThemeManager.BuiltInThemes = {
+		['Default'] 		= { 1, httpService:JSONDecode('{"FontColor":"ffffff","MainColor":"1c1c1c","AccentColor":"0055ff","BackgroundColor":"141414","OutlineColor":"323232"}') },
+		['BBot'] 			= { 2, httpService:JSONDecode('{"FontColor":"ffffff","MainColor":"1e1e1e","AccentColor":"7e48a3","BackgroundColor":"232323","OutlineColor":"141414"}') },
+		['Fatality']		= { 3, httpService:JSONDecode('{"FontColor":"ffffff","MainColor":"1e1842","AccentColor":"c50754","BackgroundColor":"191335","OutlineColor":"3c355d"}') },
+		['Jester'] 			= { 4, httpService:JSONDecode('{"FontColor":"ffffff","MainColor":"242424","AccentColor":"db4467","BackgroundColor":"1c1c1c","OutlineColor":"373737"}') },
+		['Mint'] 			= { 5, httpService:JSONDecode('{"FontColor":"ffffff","MainColor":"242424","AccentColor":"3db488","BackgroundColor":"1c1c1c","OutlineColor":"373737"}') },
+		['Tokyo Night'] 	= { 6, httpService:JSONDecode('{"FontColor":"ffffff","MainColor":"191925","AccentColor":"6759b3","BackgroundColor":"16161f","OutlineColor":"323232"}') },
+		['Ubuntu'] 			= { 7, httpService:JSONDecode('{"FontColor":"ffffff","MainColor":"3e3e3e","AccentColor":"e2581e","BackgroundColor":"323232","OutlineColor":"191919"}') },
+		['Quartz'] 			= { 8, httpService:JSONDecode('{"FontColor":"ffffff","MainColor":"232330","AccentColor":"426e87","BackgroundColor":"1d1b26","OutlineColor":"27232f"}') },
 	}
 
-	function SaveManager:SetIgnoreIndexes(list)
-		for _, key in next, list do
-			self.Ignore[key] = true
-		end
-	end
+	function ThemeManager:ApplyTheme(theme)
+		local customThemeData = self:GetCustomTheme(theme)
+		local data = customThemeData or self.BuiltInThemes[theme]
 
-	function SaveManager:SetFolder(folder)
-		self.Folder = folder;
-		self:BuildFolderTree()
-	end
+		if not data then return end
 
-	function SaveManager:Save(name)
-		if (not name) then
-			return false, 'no config file is selected'
-		end
+		-- custom themes are just regular dictionaries instead of an array with { index, dictionary }
 
-		local fullPath = self.Folder .. '/settings/' .. name .. '.json'
-
-		local data = {
-			objects = {}
-		}
-
-		for idx, toggle in next, Toggles do
-			if self.Ignore[idx] then continue end
-
-			table.insert(data.objects, self.Parser[toggle.Type].Save(idx, toggle))
-		end
-
-		for idx, option in next, Options do
-			if not self.Parser[option.Type] then continue end
-			if self.Ignore[idx] then continue end
-
-			table.insert(data.objects, self.Parser[option.Type].Save(idx, option))
-		end	
-
-		local success, encoded = pcall(httpService.JSONEncode, httpService, data)
-		if not success then
-			return false, 'failed to encode data'
-		end
-
-		writefile(fullPath, encoded)
-		return true
-	end
-
-	function SaveManager:Load(name)
-		if (not name) then
-			return false, 'no config file is selected'
-		end
-		
-		local file = self.Folder .. '/settings/' .. name .. '.json'
-		if not isfile(file) then return false, 'invalid file' end
-
-		local success, decoded = pcall(httpService.JSONDecode, httpService, readfile(file))
-		if not success then return false, 'decode error' end
-
-		for _, option in next, decoded.objects do
-			if self.Parser[option.type] then
-				task.spawn(function() self.Parser[option.type].Load(option.idx, option) end) -- task.spawn() so the config loading wont get stuck.
+		local scheme = data[2]
+		for idx, col in next, customThemeData or scheme do
+			self.Library[idx] = Color3.fromHex(col)
+			
+			if Options[idx] then
+				Options[idx]:SetValueRGB(Color3.fromHex(col))
 			end
 		end
 
-		return true
+		self:ThemeUpdate()
 	end
 
-	function SaveManager:IgnoreThemeSettings()
-		self:SetIgnoreIndexes({ 
-			"BackgroundColor", "MainColor", "AccentColor", "OutlineColor", "FontColor", -- themes
-			"ThemeManager_ThemeList", 'ThemeManager_CustomThemeList', 'ThemeManager_CustomThemeName', -- themes
+	function ThemeManager:ThemeUpdate()
+		-- This allows us to force apply themes without loading the themes tab :)
+		local options = { "FontColor", "MainColor", "AccentColor", "BackgroundColor", "OutlineColor" }
+		for i, field in next, options do
+			if Options and Options[field] then
+				self.Library[field] = Options[field].Value
+			end
+		end
+
+		self.Library.AccentColorDark = self.Library:GetDarkerColor(self.Library.AccentColor);
+		self.Library:UpdateColorsUsingRegistry()
+	end
+
+	function ThemeManager:LoadDefault()		
+		local theme = 'Default'
+		local content = isfile(self.Folder .. '/themes/default.txt') and readfile(self.Folder .. '/themes/default.txt')
+
+		local isDefault = true
+		if content then
+			if self.BuiltInThemes[content] then
+				theme = content
+			elseif self:GetCustomTheme(content) then
+				theme = content
+				isDefault = false;
+			end
+		elseif self.BuiltInThemes[self.DefaultTheme] then
+		 	theme = self.DefaultTheme
+		end
+
+		if isDefault then
+			Options.ThemeManager_ThemeList:SetValue(theme)
+		else
+			self:ApplyTheme(theme)
+		end
+	end
+
+	function ThemeManager:SaveDefault(theme)
+		writefile(self.Folder .. '/themes/default.txt', theme)
+	end
+
+	function ThemeManager:CreateThemeManager(tabbox)
+		-- ===== Tab 1: Themes =====
+		local themesTab = tabbox:AddTab('Themes')
+
+		-- Color pickers (UI theme colors)
+		themesTab:AddLabel('Background color'):AddColorPicker('BackgroundColor', { Default = self.Library.BackgroundColor })
+		themesTab:AddLabel('Main color'):AddColorPicker('MainColor', { Default = self.Library.MainColor })
+		themesTab:AddLabel('Accent color'):AddColorPicker('AccentColor', { Default = self.Library.AccentColor })
+		themesTab:AddLabel('Outline color'):AddColorPicker('OutlineColor', { Default = self.Library.OutlineColor })
+		themesTab:AddLabel('Font color'):AddColorPicker('FontColor', { Default = self.Library.FontColor })
+
+		-- Built-in theme list
+		local ThemesArray = {}
+		for Name in next, self.BuiltInThemes do
+			table.insert(ThemesArray, Name)
+		end
+		table.sort(ThemesArray, function(a, b) return self.BuiltInThemes[a][1] < self.BuiltInThemes[b][1] end)
+
+		themesTab:AddDivider()
+		themesTab:AddDropdown('ThemeManager_ThemeList', { Text = 'Theme list', Values = ThemesArray, Default = 1 })
+
+		Options.ThemeManager_ThemeList:OnChanged(function()
+			self:ApplyTheme(Options.ThemeManager_ThemeList.Value)
+		end)
+
+		themesTab:AddDivider()
+
+		-- Custom theme name input + custom theme list
+		themesTab:AddInput('ThemeManager_CustomThemeName', { Text = 'Custom theme name' })
+		themesTab:AddDropdown('ThemeManager_CustomThemeList', { Text = 'Custom themes', Values = self:ReloadCustomThemes(), AllowNull = true, Default = 1 })
+
+		themesTab:AddDivider()
+
+		-- Save custom theme (full width)
+		themesTab:AddButton('Save theme', function()
+			self:SaveCustomTheme(Options.ThemeManager_CustomThemeName.Value)
+			Options.ThemeManager_CustomThemeList:SetValues(self:ReloadCustomThemes())
+			Options.ThemeManager_CustomThemeList:SetValue(nil)
+		end)
+
+		-- [                    Load theme                     ]
+		themesTab:AddButton('Load theme', function()
+			self:ApplyTheme(Options.ThemeManager_CustomThemeList.Value)
+		end)
+
+		-- [Overwrite theme] [Delete theme]
+		themesTab:AddButton('Overwrite theme', function()
+			local name = Options.ThemeManager_CustomThemeList.Value
+			if not name or name == '' then
+				return self.Library:Notify('No custom theme selected', 2)
+			end
+			self:SaveCustomTheme(name)
+			self.Library:Notify(string.format('Overwrote theme %q', name))
+		end):AddButton('Delete theme', function()
+			local name = Options.ThemeManager_CustomThemeList.Value
+			if not name or name == '' then
+				return self.Library:Notify('No custom theme selected', 2)
+			end
+			local path = self.Folder .. '/themes/' .. name
+			if isfile(path) then
+				delfile(path)
+				self.Library:Notify(string.format('Deleted theme %q', name))
+			end
+			Options.ThemeManager_CustomThemeList:SetValues(self:ReloadCustomThemes())
+			Options.ThemeManager_CustomThemeList:SetValue(nil)
+		end)
+
+		-- [Set Default] [Reset default]
+		themesTab:AddButton('Set default', function()
+			local customVal = Options.ThemeManager_CustomThemeList.Value
+			local builtinVal = Options.ThemeManager_ThemeList.Value
+			local name = (customVal and customVal ~= '') and customVal or builtinVal
+			if not name or name == '' then
+				return self.Library:Notify('No theme selected', 2)
+			end
+			self:SaveDefault(name)
+			self.Library:Notify(string.format('Set default theme to %q', name))
+		end):AddButton('Reset default', function()
+			local path = self.Folder .. '/themes/default.txt'
+			if isfile(path) then delfile(path) end
+			self.Library:Notify('Removed default theme')
+		end)
+
+		-- [                      Refresh                      ]
+		themesTab:AddButton('Refresh', function()
+			Options.ThemeManager_CustomThemeList:SetValues(self:ReloadCustomThemes())
+			Options.ThemeManager_CustomThemeList:SetValue(nil)
+		end)
+
+		ThemeManager:LoadDefault()
+
+		local function UpdateTheme()
+			self:ThemeUpdate()
+		end
+
+		Options.BackgroundColor:OnChanged(UpdateTheme)
+		Options.MainColor:OnChanged(UpdateTheme)
+		Options.AccentColor:OnChanged(UpdateTheme)
+		Options.OutlineColor:OnChanged(UpdateTheme)
+		Options.FontColor:OnChanged(UpdateTheme)
+
+		-- ===== Tab 2: Background =====
+		local bgTab = tabbox:AddTab('Background')
+
+		-- Background color (透明度なし)
+		bgTab:AddLabel('Background color'):AddColorPicker('BG_Color', {
+			Default = Color3.fromRGB(0, 0, 0),
 		})
+
+		-- [Transparency] [Blur] (横並び)
+		bgTab:AddSlider('BG_Transparency', {
+			Text     = 'Transparency',
+			Default  = 1,
+			Min      = 0.01,
+			Max      = 1,
+			Rounding = 2,
+			Callback = function(val)
+				ThemeManager:UpdateBackground()
+			end,
+		}):AddSlider('BG_Blur', {
+			Text     = 'Blur',
+			Default  = 0,
+			Min      = 0,
+			Max      = 50,
+			Rounding = 0,
+			Callback = function(val)
+				ThemeManager:UpdateBackground()
+			end,
+		})
+
+		-- [Contrast] [Saturation] (横並び)
+		bgTab:AddSlider('BG_Contrast', {
+			Text     = 'Contrast',
+			Default  = 0,
+			Min      = -10,
+			Max      = 10,
+			Rounding = 1,
+			Callback = function(val)
+				ThemeManager:UpdateBackground()
+			end,
+		}):AddSlider('BG_Saturation', {
+			Text     = 'Saturation',
+			Default  = 0,
+			Min      = -10,
+			Max      = 10,
+			Rounding = 1,
+			Callback = function(val)
+				ThemeManager:UpdateBackground()
+			end,
+		})
+
+		-- [Brightness] (full width, 0.1単位)
+		bgTab:AddSlider('BG_Brightness', {
+			Text     = 'Brightness',
+			Default  = 0,
+			Min      = -1,
+			Max      = 1,
+			Rounding = 1,
+			Callback = function(val)
+				ThemeManager:UpdateBackground()
+			end,
+		})
+
+		-- Background instances
+		local Lighting = game:GetService('Lighting')
+
+		-- BlurEffect
+		if not Lighting:FindFirstChild('ThemeManager_Blur') then
+			local blur = Instance.new('BlurEffect')
+			blur.Name  = 'ThemeManager_Blur'
+			blur.Size  = 0
+			blur.Parent = Lighting
+		end
+
+		-- ColorCorrectionEffect
+		if not Lighting:FindFirstChild('ThemeManager_CC') then
+			local cc = Instance.new('ColorCorrectionEffect')
+			cc.Name   = 'ThemeManager_CC'
+			cc.Parent = Lighting
+		end
+
+		-- Background frame (全画面)
+		if not self._BgFrame then
+			local RunService = game:GetService('RunService')
+			local bg = Instance.new('Frame')
+			bg.Name              = 'ThemeManager_BgFrame'
+			bg.Size              = UDim2.new(1, 0, 1, 0)
+			bg.Position          = UDim2.new(0, 0, 0, 0)
+			bg.BackgroundColor3  = Options.BG_Color and Options.BG_Color.Value or Color3.new(0,0,0)
+			bg.BackgroundTransparency = 1
+			bg.BorderSizePixel   = 0
+			bg.ZIndex            = -1
+			bg.Parent            = self.Library.ScreenGui
+			self._BgFrame = bg
+		end
+
+		Options.BG_Color:OnChanged(function()
+			ThemeManager:UpdateBackground()
+		end)
+
+		function ThemeManager:UpdateBackground()
+			local Lighting2 = game:GetService('Lighting')
+			local blur = Lighting2:FindFirstChild('ThemeManager_Blur')
+			local cc   = Lighting2:FindFirstChild('ThemeManager_CC')
+
+			if blur then
+				blur.Size = Options.BG_Blur and Options.BG_Blur.Value or 0
+			end
+			if cc then
+				cc.Contrast    = Options.BG_Contrast   and Options.BG_Contrast.Value   or 0
+				cc.Saturation  = Options.BG_Saturation and Options.BG_Saturation.Value or 0
+				cc.Brightness  = Options.BG_Brightness and Options.BG_Brightness.Value or 0
+			end
+
+			if self._BgFrame then
+				local t = Options.BG_Transparency and Options.BG_Transparency.Value or 1
+				-- t=1: 完全に背景が見える（Frameほぼ透明）, t≈0: カラーで塗りつぶす
+				self._BgFrame.BackgroundTransparency = t
+				self._BgFrame.BackgroundColor3 = Options.BG_Color and Options.BG_Color.Value or Color3.new(0,0,0)
+			end
+		end
 	end
 
-	function SaveManager:BuildFolderTree()
-		local paths = {
-			self.Folder,
-			self.Folder .. '/themes',
-			self.Folder .. '/settings'
-		}
+	function ThemeManager:GetCustomTheme(file)
+		local path = self.Folder .. '/themes/' .. file
+		if not isfile(path) then
+			return nil
+		end
+
+		local data = readfile(path)
+		local success, decoded = pcall(httpService.JSONDecode, httpService, data)
+		
+		if not success then
+			return nil
+		end
+
+		return decoded
+	end
+
+	function ThemeManager:SaveCustomTheme(file)
+		if file:gsub(' ', '') == '' then
+			return self.Library:Notify('Invalid file name for theme (empty)', 3)
+		end
+
+		local theme = {}
+		local fields = { "FontColor", "MainColor", "AccentColor", "BackgroundColor", "OutlineColor" }
+
+		for _, field in next, fields do
+			theme[field] = Options[field].Value:ToHex()
+		end
+
+		writefile(self.Folder .. '/themes/' .. file .. '.json', httpService:JSONEncode(theme))
+	end
+
+	function ThemeManager:ReloadCustomThemes()
+		local list = listfiles(self.Folder .. '/themes')
+
+		local out = {}
+		for i = 1, #list do
+			local file = list[i]
+			if file:sub(-5) == '.json' then
+				-- i hate this but it has to be done ...
+
+				local pos = file:find('.json', 1, true)
+				local char = file:sub(pos, pos)
+
+				while char ~= '/' and char ~= '\\' and char ~= '' do
+					pos = pos - 1
+					char = file:sub(pos, pos)
+				end
+
+				if char == '/' or char == '\\' then
+					table.insert(out, file:sub(pos + 1))
+				end
+			end
+		end
+
+		return out
+	end
+
+	function ThemeManager:SetLibrary(lib)
+		self.Library = lib
+	end
+
+	function ThemeManager:BuildFolderTree()
+		local paths = {}
+
+		-- build the entire tree if a path is like some-hub/phantom-forces
+		-- makefolder builds the entire tree on Synapse X but not other exploits
+
+		local parts = self.Folder:split('/')
+		for idx = 1, #parts do
+			paths[#paths + 1] = table.concat(parts, '/', 1, idx)
+		end
+
+		table.insert(paths, self.Folder .. '/themes')
+		table.insert(paths, self.Folder .. '/settings')
 
 		for i = 1, #paths do
 			local str = paths[i]
@@ -153,218 +381,34 @@ local SaveManager = {} do
 		end
 	end
 
-	function SaveManager:RefreshConfigList()
-		local list = listfiles(self.Folder .. '/settings')
-
-		local out = {}
-		for i = 1, #list do
-			local file = list[i]
-			if file:sub(-5) == '.json' then
-				-- i hate this but it has to be done ...
-
-				local pos = file:find('.json', 1, true)
-				local start = pos
-
-				local char = file:sub(pos, pos)
-				while char ~= '/' and char ~= '\\' and char ~= '' do
-					pos = pos - 1
-					char = file:sub(pos, pos)
-				end
-
-				if char == '/' or char == '\\' then
-					table.insert(out, file:sub(pos + 1, start - 1))
-				end
-			end
-		end
-		
-		return out
+	function ThemeManager:SetFolder(folder)
+		self.Folder = folder
+		self:BuildFolderTree()
 	end
 
-	function SaveManager:SetLibrary(library)
-		self.Library = library
+	function ThemeManager:CreateTabbox(tab)
+		assert(self.Library, 'Must set ThemeManager.Library first!')
+		return tab:AddLeftTabbox('Themes')
 	end
 
-	function SaveManager:LoadAutoloadConfig()
-		if isfile(self.Folder .. '/settings/autoload.txt') then
-			local name = readfile(self.Folder .. '/settings/autoload.txt')
-
-			local success, err = self:Load(name)
-			if not success then
-				return self.Library:Notify('Failed to load autoload config: ' .. err)
-			end
-
-			self.Library:Notify(string.format('Auto loaded config %q', name))
-		end
+	-- Legacy alias kept for compatibility
+	function ThemeManager:CreateGroupBox(tab)
+		return self:CreateTabbox(tab)
 	end
 
-
-	function SaveManager:BuildConfigSection(tab)
-		assert(self.Library, 'Must set SaveManager.Library')
-
-		local tabbox = tab:AddRightTabbox('Configuration')
-
-		-- ===== Tab 1: Menu (Config management) =====
-		local menuTab = tabbox:AddTab('Menu')
-
-		menuTab:AddDropdown('SaveManager_ConfigList', {
-			Text      = 'Config list',
-			Values    = self:RefreshConfigList(),
-			AllowNull = true,
-		})
-
-		-- [Create config] [Load config]
-		menuTab:AddButton('Create config', function()
-			local name = Options.SaveManager_ConfigList.Value
-
-			if not name or name:gsub(' ', '') == '' then
-				return self.Library:Notify('Select a config or type a name in the list', 2)
-			end
-
-			local success, err = self:Save(name)
-			if not success then
-				return self.Library:Notify('Failed to save config: ' .. err)
-			end
-
-			self.Library:Notify(string.format('Created config %q', name))
-			Options.SaveManager_ConfigList:SetValues(self:RefreshConfigList())
-			Options.SaveManager_ConfigList:SetValue(nil)
-		end):AddButton('Load config', function()
-			local name = Options.SaveManager_ConfigList.Value
-
-			local success, err = self:Load(name)
-			if not success then
-				return self.Library:Notify('Failed to load config: ' .. err)
-			end
-
-			self.Library:Notify(string.format('Loaded config %q', name))
-		end)
-
-		-- [Overwrite config] [Delete config]
-		menuTab:AddButton('Overwrite config', function()
-			local name = Options.SaveManager_ConfigList.Value
-
-			local success, err = self:Save(name)
-			if not success then
-				return self.Library:Notify('Failed to overwrite config: ' .. err)
-			end
-
-			self.Library:Notify(string.format('Overwrote config %q', name))
-		end):AddButton('Delete config', function()
-			local name = Options.SaveManager_ConfigList.Value
-			if not name then
-				return self.Library:Notify('No config selected', 2)
-			end
-
-			local path = self.Folder .. '/settings/' .. name .. '.json'
-			if isfile(path) then
-				delfile(path)
-				self.Library:Notify(string.format('Deleted config %q', name))
-			end
-
-			Options.SaveManager_ConfigList:SetValues(self:RefreshConfigList())
-			Options.SaveManager_ConfigList:SetValue(nil)
-		end)
-
-		-- [Refresh list]
-		menuTab:AddButton('Refresh list', function()
-			Options.SaveManager_ConfigList:SetValues(self:RefreshConfigList())
-			Options.SaveManager_ConfigList:SetValue(nil)
-		end)
-
-		-- [Set autoload] [Remove autoload]
-		menuTab:AddButton('Set autoload', function()
-			local name = Options.SaveManager_ConfigList.Value
-			if not name then
-				return self.Library:Notify('No config selected', 2)
-			end
-
-			writefile(self.Folder .. '/settings/autoload.txt', name)
-			SaveManager.AutoloadLabel:SetText('Current autoload config: ' .. name)
-			self.Library:Notify(string.format('Set %q to auto load', name))
-		end):AddButton('Remove autoload', function()
-			local path = self.Folder .. '/settings/autoload.txt'
-			if isfile(path) then delfile(path) end
-			SaveManager.AutoloadLabel:SetText('Current autoload config: none')
-			self.Library:Notify('Removed autoload config')
-		end)
-
-		SaveManager.AutoloadLabel = menuTab:AddLabel('Current autoload config: none', true)
-
-		if isfile(self.Folder .. '/settings/autoload.txt') then
-			local name = readfile(self.Folder .. '/settings/autoload.txt')
-			SaveManager.AutoloadLabel:SetText('Current autoload config: ' .. name)
-		end
-
-		-- ===== Tab 2: Notification settings =====
-		local notifTab = tabbox:AddTab('Notification')
-
-		-- Position X / Y (横並び)
-		notifTab:AddSlider('SaveManager_NotifPosX', {
-			Text    = 'Position X',
-			Default = 0,
-			Min     = 1,
-			Max     = 100,
-			Rounding = 0,
-			Suffix  = '%',
-			Callback = function(val)
-				local area = self.Library.NotificationArea
-				if area then
-					area.Position = UDim2.new(val / 100, 0, area.Position.Y.Scale, 0)
-				end
-			end,
-		}):AddSlider('SaveManager_NotifPosY', {
-			Text    = 'Position Y',
-			Default = 0,
-			Min     = 1,
-			Max     = 100,
-			Rounding = 0,
-			Suffix  = '%',
-			Callback = function(val)
-				local area = self.Library.NotificationArea
-				if area then
-					area.Position = UDim2.new(area.Position.X.Scale, 0, val / 100, 0)
-				end
-			end,
-		})
-
-		-- Transparency (full-width)
-		notifTab:AddSlider('SaveManager_NotifTransparency', {
-			Text    = 'Transparency',
-			Default = 100,
-			Min     = 1,
-			Max     = 100,
-			Rounding = 0,
-			Suffix  = '%',
-			Callback = function(val)
-				SaveManager._NotifTransparency = 1 - (val / 100)
-			end,
-		})
-
-		-- Accent bar position (dropdown)
-		notifTab:AddDropdown('SaveManager_NotifAccentSide', {
-			Text   = 'Accent bar side',
-			Values = { 'Left', 'Right', 'Top', 'Bottom' },
-			Default = 1,
-			Callback = function(val)
-				SaveManager._NotifAccentSide = val
-			end,
-		})
-
-		-- Send test notification
-		notifTab:AddButton('Send Notification', function()
-			self.Library:Notify('Test notification', 3)
-		end)
-
-		SaveManager:SetIgnoreIndexes({
-			'SaveManager_ConfigList',
-			'SaveManager_NotifPosX',
-			'SaveManager_NotifPosY',
-			'SaveManager_NotifTransparency',
-			'SaveManager_NotifAccentSide',
-		})
+	function ThemeManager:ApplyToTab(tab)
+		assert(self.Library, 'Must set ThemeManager.Library first!')
+		local tabbox = self:CreateTabbox(tab)
+		self:CreateThemeManager(tabbox)
 	end
 
-	SaveManager:BuildFolderTree()
+	function ThemeManager:ApplyToGroupbox(groupbox)
+		assert(self.Library, 'Must set ThemeManager.Library first!')
+		-- groupboxがtabboxでない場合も安全に動作するよう、そのまま渡す
+		self:CreateThemeManager(groupbox)
+	end
+
+	ThemeManager:BuildFolderTree()
 end
 
-return SaveManager
+return ThemeManager
