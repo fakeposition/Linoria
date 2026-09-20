@@ -112,14 +112,11 @@ local ThemeManager = {} do
 			list:Display()
 		end
 
-		-- Save theme (full width)
+		-- [Save theme] [Load theme]
 		themesTab:AddButton('Save theme', function()
 			self:SaveCustomTheme(Options.ThemeManager_CustomThemeName.Value)
 			RefreshCustomThemeList()
-		end)
-
-		-- [              Load theme              ]
-		themesTab:AddButton('Load theme', function()
+		end):AddButton('Load theme', function()
 			local name = Options.ThemeManager_CustomThemeList.Value
 			if not name or name == '' then
 				return self.Library:Notify('No custom theme selected', 2)
