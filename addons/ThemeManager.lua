@@ -70,32 +70,8 @@ local ThemeManager = {} do
 		writefile(self.Folder .. '/themes/default.txt', theme)
 	end
 
-	-- UpdateBackground は CreateThemeManager より前に定義（コールバックから参照されるため）
-	function ThemeManager:UpdateBackground()
-		local L    = game:GetService('Lighting')
-		local blur = L:FindFirstChild('ThemeManager_Blur')
-		local cc   = L:FindFirstChild('ThemeManager_CC')
-
-		if blur then
-			blur.Size = Options.BG_Blur and Options.BG_Blur.Value or 0
-		end
-		if cc then
-			cc.Contrast   = Options.BG_Contrast   and Options.BG_Contrast.Value   or 0
-			cc.Saturation = Options.BG_Saturation and Options.BG_Saturation.Value or 0
-			cc.Brightness = Options.BG_Brightness and Options.BG_Brightness.Value or 0
-		end
-
-		if self._BgFrame then
-			-- t=1: 背景がそのまま見える  t→0: BG_Colorで塗りつぶされる
-			local t = Options.BG_Transparency and Options.BG_Transparency.Value or 1
-			self._BgFrame.BackgroundTransparency = t
-			self._BgFrame.BackgroundColor3 = Options.BG_Color and Options.BG_Color.Value or Color3.new(0, 0, 0)
-		end
-	end
-
-	function ThemeManager:CreateThemeManager(tabbox)
-		-- ===== Tab 1: Themes =====
-		local themesTab = tabbox:AddTab('Themes')
+	function ThemeManager:CreateThemeManager(groupbox)
+		local themesTab = groupbox
 
 		-- UI テーマカラーピッカー
 		themesTab:AddLabel('Background color'):AddColorPicker('BackgroundColor', { Default = self.Library.BackgroundColor })
@@ -215,105 +191,6 @@ local ThemeManager = {} do
 		Options.AccentColor:OnChanged(UpdateTheme)
 		Options.OutlineColor:OnChanged(UpdateTheme)
 		Options.FontColor:OnChanged(UpdateTheme)
-
-		-- ===== Tab 2: Background =====
-		local bgTab = tabbox:AddTab('Background')
-
-		-- Lighting / BgFrame セットアップ（コールバックより先）
-		local Lighting = game:GetService('Lighting')
-
-		if not Lighting:FindFirstChild('ThemeManager_Blur') then
-			local blur = Instance.new('BlurEffect')
-			blur.Name   = 'ThemeManager_Blur'
-			blur.Size   = 0
-			blur.Parent = Lighting
-		end
-
-		if not Lighting:FindFirstChild('ThemeManager_CC') then
-			local cc = Instance.new('ColorCorrectionEffect')
-			cc.Name   = 'ThemeManager_CC'
-			cc.Parent = Lighting
-		end
-
-		if not self._BgFrame then
-			local bg = Instance.new('Frame')
-			bg.Name                   = 'ThemeManager_BgFrame'
-			bg.Size                   = UDim2.new(1, 0, 1, 0)
-			bg.Position               = UDim2.new(0, 0, 0, 0)
-			bg.BackgroundColor3       = Color3.new(0, 0, 0)
-			bg.BackgroundTransparency = 1
-			bg.BorderSizePixel        = 0
-			bg.ZIndex                 = -1
-			bg.Parent                 = self.Library.ScreenGui
-			self._BgFrame = bg
-		end
-
-		-- Background color（透明度なし）
-		bgTab:AddLabel('Background color'):AddColorPicker('BG_Color', {
-			Default = Color3.fromRGB(0, 0, 0),
-		})
-		Options.BG_Color:OnChanged(function() ThemeManager:UpdateBackground() end)
-
-		-- Transparency (0.01〜1, assert回避のためDefault/Min/Roundingは非ゼロ)
-		bgTab:AddSlider('BG_Transparency', {
-			Text     = 'Transparency',
-			Default  = 1,
-			Min      = 0.01,
-			Max      = 1,
-			Rounding = 2,
-			Callback = function() ThemeManager:UpdateBackground() end,
-		})
-
-		-- [Blur 0→1で代用してMin問題を回避: Min=0はassert失敗するのでAddSliderRowを使用]
-		-- Blur: Min=0はfalsyなのでAddSliderRowで横並びにしてassertを回避
-		bgTab:AddSliderRow(
-			'BG_Blur', {
-				Text     = 'Blur',
-				Default  = 1,    -- 表示上の初期値、実際は0相当
-				Min      = 1,    -- assert回避(実質0)
-				Max      = 50,
-				Rounding = 1,
-				Callback = function() ThemeManager:UpdateBackground() end,
-			},
-			'BG_Blur_dummy', {   -- 横並び右側はダミーとして非表示用の超小スライダー
-				Text     = 'Blur',
-				Default  = 1,
-				Min      = 1,
-				Max      = 50,
-				Rounding = 1,
-			}
-		)
-
-		-- Contrast / Saturation 横並び
-		-- Min=-10はassert通過するが念のためAddSliderRowを使用
-		bgTab:AddSliderRow(
-			'BG_Contrast', {
-				Text     = 'Contrast',
-				Default  = 0.1,
-				Min      = -10,
-				Max      = 10,
-				Rounding = 1,
-				Callback = function() ThemeManager:UpdateBackground() end,
-			},
-			'BG_Saturation', {
-				Text     = 'Saturation',
-				Default  = 0.1,
-				Min      = -10,
-				Max      = 10,
-				Rounding = 1,
-				Callback = function() ThemeManager:UpdateBackground() end,
-			}
-		)
-
-		-- Brightness
-		bgTab:AddSlider('BG_Brightness', {
-			Text     = 'Brightness',
-			Default  = 0.1,
-			Min      = -1,
-			Max      = 1,
-			Rounding = 1,
-			Callback = function() ThemeManager:UpdateBackground() end,
-		})
 	end
 
 	function ThemeManager:GetCustomTheme(file)
@@ -399,21 +276,15 @@ local ThemeManager = {} do
 		self:BuildFolderTree()
 	end
 
-	-- Tabbox版（ApplyToTabが使う）
-	function ThemeManager:CreateTabbox(tab)
-		assert(self.Library, 'Must set ThemeManager.Library first!')
-		return tab:AddLeftTabbox('Themes')
-	end
-
-	-- 後方互換
 	function ThemeManager:CreateGroupBox(tab)
-		return self:CreateTabbox(tab)
+		assert(self.Library, 'Must set ThemeManager.Library first!')
+		return tab:AddLeftGroupbox('Themes')
 	end
 
 	function ThemeManager:ApplyToTab(tab)
 		assert(self.Library, 'Must set ThemeManager.Library first!')
-		local tabbox = self:CreateTabbox(tab)
-		self:CreateThemeManager(tabbox)
+		local groupbox = self:CreateGroupBox(tab)
+		self:CreateThemeManager(groupbox)
 	end
 
 	function ThemeManager:ApplyToGroupbox(groupbox)
