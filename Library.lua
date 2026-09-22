@@ -3247,7 +3247,7 @@ do
 
     local WatermarkLabel = Library:CreateLabel({
         Position = UDim2.new(0, 5, 0, 0);
-        Size = UDim2.new(1, -4, 1, 0);
+        Size = UDim2.new(1, -10, 1, 0);
         TextSize = 14;
         TextXAlignment = Enum.TextXAlignment.Left;
         ZIndex = 203;
@@ -3257,6 +3257,15 @@ do
     Library.Watermark = WatermarkOuter;
     Library.WatermarkText = WatermarkLabel;
     Library:MakeDraggable(Library.Watermark);
+
+    -- WatermarkLabel のテキストが変わるたびにフレーム幅をリアルタイムで再計算
+    WatermarkLabel:GetPropertyChangedSignal('Text'):Connect(function()
+        local txt = WatermarkLabel.Text
+        if not txt or txt == '' then return end
+        local Bounds = TextService:GetTextSize(txt, 14, Library.Font, Vector2.new(math.huge, math.huge))
+        local X, Y = Bounds.X, Bounds.Y
+        WatermarkOuter.Size = UDim2.new(0, X + 20, 0, (Y * 1.5) + 3)
+    end)
 
 
 
@@ -3335,11 +3344,12 @@ function Library:SetWatermarkVisibility(Bool)
 end;
 
 function Library:SetWatermark(Text)
-    -- GetTextBounds は Vector2(1920,1080) を上限にするため長いテキストで幅が切れる。
-    -- math.huge を渡して折り返しなし・実際の描画幅を正確に取得する。
+    -- WatermarkLabel は Position.X=5px オフセット + Size=-4px のため
+    -- ラベルの左マージン5px + 右マージン9px = 計14px 分をフレーム幅に加算する。
+    -- math.huge で折り返しなしの正確な描画幅を取得する。
     local Bounds = TextService:GetTextSize(Text, 14, Library.Font, Vector2.new(math.huge, math.huge));
     local X, Y = Bounds.X, Bounds.Y;
-    Library.Watermark.Size = UDim2.new(0, X + 15, 0, (Y * 1.5) + 3);
+    Library.Watermark.Size = UDim2.new(0, X + 20, 0, (Y * 1.5) + 3);
     Library:SetWatermarkVisibility(true)
 
     Library.WatermarkText.Text = Text;
