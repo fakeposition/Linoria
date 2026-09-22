@@ -3335,7 +3335,10 @@ function Library:SetWatermarkVisibility(Bool)
 end;
 
 function Library:SetWatermark(Text)
-    local X, Y = Library:GetTextBounds(Text, Library.Font, 14);
+    -- GetTextBounds は Vector2(1920,1080) を上限にするため長いテキストで幅が切れる。
+    -- math.huge を渡して折り返しなし・実際の描画幅を正確に取得する。
+    local Bounds = TextService:GetTextSize(Text, 14, Library.Font, Vector2.new(math.huge, math.huge));
+    local X, Y = Bounds.X, Bounds.Y;
     Library.Watermark.Size = UDim2.new(0, X + 15, 0, (Y * 1.5) + 3);
     Library:SetWatermarkVisibility(true)
 
