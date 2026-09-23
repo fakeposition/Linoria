@@ -3009,11 +3009,8 @@ do
                 local nTable = {};
 
                 for Value, Bool in next, Val do
-                    -- 配列形式 ({1='Aimbot',2='ESP'}) とハッシュ形式 ({Aimbot=true}) の両方に対応
-                    -- 配列形式の場合 Value は数値インデックス、Bool が実際の値文字列
-                    local actualValue = (type(Value) == 'number') and Bool or Value;
-                    if type(actualValue) == 'string' and table.find(Dropdown.Values, actualValue) then
-                        nTable[actualValue] = true
+                    if table.find(Dropdown.Values, Value) then
+                        nTable[Value] = true
                     end;
                 end;
 
@@ -3027,6 +3024,7 @@ do
             end;
 
             Dropdown:BuildDropdownList();
+            Dropdown:Display();
 
             Library:SafeCallback(Dropdown.Callback, Dropdown.Value);
             Library:SafeCallback(Dropdown.Changed, Dropdown.Value);
