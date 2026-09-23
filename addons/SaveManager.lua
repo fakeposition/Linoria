@@ -29,8 +29,11 @@ local SaveManager = {} do
 				return { type = 'Dropdown', idx = idx, value = object.Value, mutli = object.Multi }
 			end,
 			Load = function(idx, data)
-				if Options[idx] then 
+				if Options[idx] then
 					Options[idx]:SetValue(data.value)
+					task.defer(function()
+						Options[idx]:SetValue(data.value)
+					end)
 				end
 			end,
 		},
