@@ -3009,8 +3009,11 @@ do
                 local nTable = {};
 
                 for Value, Bool in next, Val do
-                    if table.find(Dropdown.Values, Value) then
-                        nTable[Value] = true
+                    -- 配列形式 ({1='Aimbot',2='ESP'}) とハッシュ形式 ({Aimbot=true}) の両方に対応
+                    -- 配列形式の場合 Value は数値インデックス、Bool が実際の値文字列
+                    local actualValue = (type(Value) == 'number') and Bool or Value;
+                    if type(actualValue) == 'string' and table.find(Dropdown.Values, actualValue) then
+                        nTable[actualValue] = true
                     end;
                 end;
 
