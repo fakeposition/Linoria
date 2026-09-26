@@ -73,14 +73,12 @@ local ThemeManager = {} do
 	function ThemeManager:CreateThemeManager(groupbox)
 		local themesTab = groupbox
 
-		-- UI テーマカラーピッカー
 		themesTab:AddLabel('Background color'):AddColorPicker('BackgroundColor', { Default = self.Library.BackgroundColor })
 		themesTab:AddLabel('Main color')      :AddColorPicker('MainColor',       { Default = self.Library.MainColor })
 		themesTab:AddLabel('Accent color')    :AddColorPicker('AccentColor',     { Default = self.Library.AccentColor })
 		themesTab:AddLabel('Outline color')   :AddColorPicker('OutlineColor',    { Default = self.Library.OutlineColor })
 		themesTab:AddLabel('Font color')      :AddColorPicker('FontColor',       { Default = self.Library.FontColor })
 
-		-- Built-in theme dropdown
 		local ThemesArray = {}
 		for Name in next, self.BuiltInThemes do
 			table.insert(ThemesArray, Name)
@@ -96,15 +94,11 @@ local ThemeManager = {} do
 
 		themesTab:AddDivider()
 
-		-- Custom theme
 		themesTab:AddInput('ThemeManager_CustomThemeName', { Text = 'Custom theme name' })
 		themesTab:AddDropdown('ThemeManager_CustomThemeList', { Text = 'Custom themes', Values = self:ReloadCustomThemes(), AllowNull = true, Default = 1 })
 
 		themesTab:AddDivider()
 
-		-- カスタムテーマ一覧を再読み込みして選択をクリアする
-		-- ※ Dropdown:BuildDropdownList は値が1つ以上ないと Display を呼ばないので、
-		--   最後の1個を消して一覧が空になった時に古い名前が残る → 手動で Display を呼ぶ
 		local function RefreshCustomThemeList()
 			local list = Options.ThemeManager_CustomThemeList
 			list:SetValues(self:ReloadCustomThemes())
@@ -112,7 +106,6 @@ local ThemeManager = {} do
 			list:Display()
 		end
 
-		-- [Save theme] [Load theme]
 		themesTab:AddButton('Save theme', function()
 			self:SaveCustomTheme(Options.ThemeManager_CustomThemeName.Value)
 			RefreshCustomThemeList()
@@ -124,7 +117,6 @@ local ThemeManager = {} do
 			self:ApplyTheme(name)
 		end)
 
-		-- [Overwrite theme] [Delete theme]  ← LinoriaLib 標準の DoubleClick で2回押し確認
 		themesTab:AddButton({
 			Text = 'Overwrite theme',
 			DoubleClick = true,
@@ -147,7 +139,6 @@ local ThemeManager = {} do
 					return self.Library:Notify('No custom theme selected', 2)
 				end
 
-				-- ReloadCustomThemes が .json なし名前を返すので .json を補完
 				local path = self.Folder .. '/themes/' .. name .. '.json'
 				if isfile(path) then
 					delfile(path)
@@ -158,7 +149,6 @@ local ThemeManager = {} do
 			end,
 		})
 
-		-- [Set default] [Reset default]
 		themesTab:AddButton('Set default', function()
 			local customVal  = Options.ThemeManager_CustomThemeList.Value
 			local builtinVal = Options.ThemeManager_ThemeList.Value
@@ -174,7 +164,6 @@ local ThemeManager = {} do
 			self.Library:Notify('Removed default theme')
 		end)
 
-		-- [              Refresh              ]
 		themesTab:AddButton('Refresh', function()
 			RefreshCustomThemeList()
 		end)
@@ -192,8 +181,7 @@ local ThemeManager = {} do
 	end
 
 	function ThemeManager:GetCustomTheme(file)
-		-- ReloadCustomThemes が .json なし名前を返すので .json を補完
-		-- .json が既についている場合は二重にしない
+
 		local path = self.Folder .. '/themes/' .. (file:sub(-5) == '.json' and file or file .. '.json')
 		if not isfile(path) then
 			return nil
@@ -241,7 +229,7 @@ local ThemeManager = {} do
 				end
 
 				if char == '/' or char == '\\' then
-					-- SaveManager と同じく .json を除いた名前を返す
+
 					table.insert(out, file:sub(pos + 1, start - 1))
 				end
 			end
