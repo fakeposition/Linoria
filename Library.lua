@@ -3200,7 +3200,7 @@ do
     local WatermarkOuter = Library:Create('Frame', {
         BorderColor3 = Color3.new(0, 0, 0);
         Position = UDim2.new(0, 100, 0, -25);
-        Size = UDim2.new(0, 213, 0, 20);
+        Size = UDim2.new(0, 213, 0, 34);
         ZIndex = 200;
         Visible = false;
         Parent = ScreenGui;
@@ -3219,38 +3219,28 @@ do
         BorderColor3 = 'OutlineColor';
     });
 
+    -- ESP Preview と同じ MainSection レイヤー
     local InnerFrame = Library:Create('Frame', {
-        BackgroundColor3 = Color3.new(1, 1, 1);
-        BorderSizePixel = 0;
-        Position = UDim2.new(0, 1, 0, 1);
-        Size = UDim2.new(1, -2, 1, -2);
+        BackgroundColor3 = Library.BackgroundColor;
+        BorderColor3 = Library.OutlineColor;
+        BorderMode = Enum.BorderMode.Inset;
+        Position = UDim2.new(0, 8, 0, 8);
+        Size = UDim2.new(1, -16, 1, -16);
         ZIndex = 202;
         Parent = WatermarkInner;
     });
 
-    local Gradient = Library:Create('UIGradient', {
-        Color = ColorSequence.new({
-            ColorSequenceKeypoint.new(0, Library:GetDarkerColor(Library.MainColor)),
-            ColorSequenceKeypoint.new(1, Library.MainColor),
-        });
-        Rotation = -90;
-        Parent = InnerFrame;
-    });
-
-    Library:AddToRegistry(Gradient, {
-        Color = function()
-            return ColorSequence.new({
-                ColorSequenceKeypoint.new(0, Library:GetDarkerColor(Library.MainColor)),
-                ColorSequenceKeypoint.new(1, Library.MainColor),
-            });
-        end
+    Library:AddToRegistry(InnerFrame, {
+        BackgroundColor3 = 'BackgroundColor';
+        BorderColor3 = 'OutlineColor';
     });
 
     local WatermarkLabel = Library:CreateLabel({
-        Position = UDim2.new(0, 5, 0, 0);
-        Size = UDim2.new(1, -10, 1, 0);
+        Position = UDim2.new(0, 8, 0, 0);
+        Size = UDim2.new(1, -16, 1, 0);
         TextSize = 14;
-        TextXAlignment = Enum.TextXAlignment.Left;
+        TextXAlignment = Enum.TextXAlignment.Center;
+        TextYAlignment = Enum.TextYAlignment.Center;
         ZIndex = 203;
         Parent = InnerFrame;
     });
@@ -3265,7 +3255,7 @@ do
         if not txt or txt == '' then return end
         local Bounds = TextService:GetTextSize(txt, 14, Library.Font, Vector2.new(math.huge, math.huge))
         local X, Y = Bounds.X, Bounds.Y
-        WatermarkOuter.Size = UDim2.new(0, X + 20, 0, (Y * 1.5) + 3)
+        WatermarkOuter.Size = UDim2.new(0, X + 32, 0, 34)
     end)
 
 
@@ -3345,12 +3335,10 @@ function Library:SetWatermarkVisibility(Bool)
 end;
 
 function Library:SetWatermark(Text)
-    -- WatermarkLabel は Position.X=5px オフセット + Size=-4px のため
-    -- ラベルの左マージン5px + 右マージン9px = 計14px 分をフレーム幅に加算する。
-    -- math.huge で折り返しなしの正確な描画幅を取得する。
+    -- 横一列の Watermark 幅を文字列幅から算出する。
     local Bounds = TextService:GetTextSize(Text, 14, Library.Font, Vector2.new(math.huge, math.huge));
     local X, Y = Bounds.X, Bounds.Y;
-    Library.Watermark.Size = UDim2.new(0, X + 20, 0, (Y * 1.5) + 3);
+    Library.Watermark.Size = UDim2.new(0, X + 32, 0, 34);
     Library:SetWatermarkVisibility(true)
 
     Library.WatermarkText.Text = Text;
