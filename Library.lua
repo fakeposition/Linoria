@@ -3198,7 +3198,9 @@ do
     });
 
     local WatermarkOuter = Library:Create('Frame', {
+        BackgroundColor3 = Color3.new(0, 0, 0);
         BorderColor3 = Color3.new(0, 0, 0);
+        BorderSizePixel = 0;
         Position = UDim2.new(0, 100, 0, -25);
         Size = UDim2.new(0, 213, 0, 34);
         ZIndex = 200;
@@ -3216,24 +3218,83 @@ do
     });
 
     Library:AddToRegistry(WatermarkInner, {
+        BackgroundColor3 = 'MainColor';
         BorderColor3 = 'OutlineColor';
     });
 
-    -- ESP Preview と同じ MainSection レイヤー
-    local InnerFrame = Library:Create('Frame', {
-        BackgroundColor3 = Library.BackgroundColor;
-        BorderColor3 = Library.OutlineColor;
-        BorderMode = Enum.BorderMode.Inset;
-        Position = UDim2.new(0, 8, 0, 8);
-        Size = UDim2.new(1, -16, 1, -16);
-        ZIndex = 202;
+    -- ESP Preview と同じタイトル用の空ラベル（ドラッグ領域）
+    Library:CreateLabel({
+        Position = UDim2.new(0, 0, 0, 0);
+        Size = UDim2.new(1, 0, 0, 25);
+        Text = '';
+        TextXAlignment = Enum.TextXAlignment.Center;
+        ZIndex = 201;
         Parent = WatermarkInner;
     });
 
-    Library:AddToRegistry(InnerFrame, {
+    -- ESP Preview と同じ MainSectionOuter
+    local WatermarkMSO = Library:Create('Frame', {
+        BackgroundColor3 = Library.BackgroundColor;
+        BorderColor3 = Library.OutlineColor;
+        Position = UDim2.new(0, 8, 0, 8);
+        Size = UDim2.new(1, -16, 1, -16);
+        ZIndex = 201;
+        Parent = WatermarkInner;
+    });
+    Library:AddToRegistry(WatermarkMSO, {
         BackgroundColor3 = 'BackgroundColor';
         BorderColor3 = 'OutlineColor';
     });
+
+    -- ESP Preview と同じ MainSectionInner
+    local WatermarkMSI = Library:Create('Frame', {
+        BackgroundColor3 = Library.BackgroundColor;
+        BorderColor3 = Color3.new(0, 0, 0);
+        BorderMode = Enum.BorderMode.Inset;
+        Size = UDim2.new(1, 0, 1, 0);
+        ZIndex = 201;
+        Parent = WatermarkMSO;
+    });
+    Library:AddToRegistry(WatermarkMSI, { BackgroundColor3 = 'BackgroundColor' });
+
+    -- ESP Preview と同じ TabContainer
+    local WatermarkTC = Library:Create('Frame', {
+        BackgroundColor3 = Library.MainColor;
+        BorderColor3 = Library.OutlineColor;
+        Position = UDim2.new(0, 8, 0, 8);
+        Size = UDim2.new(1, -16, 1, -16);
+        ZIndex = 202;
+        Parent = WatermarkMSI;
+    });
+    Library:AddToRegistry(WatermarkTC, {
+        BackgroundColor3 = 'MainColor';
+        BorderColor3 = 'OutlineColor';
+    });
+
+    -- ESP Preview と同じ Groupbox: BoxOuter → BoxInner
+    local WatermarkBoxOuter = Library:Create('Frame', {
+        BackgroundColor3 = Library.BackgroundColor;
+        BorderColor3 = Library.OutlineColor;
+        BorderMode = Enum.BorderMode.Inset;
+        Size = UDim2.new(1, -16, 1, -8);
+        Position = UDim2.new(0, 8, 0, 4);
+        ZIndex = 202;
+        Parent = WatermarkTC;
+    });
+    Library:AddToRegistry(WatermarkBoxOuter, {
+        BackgroundColor3 = 'BackgroundColor';
+        BorderColor3 = 'OutlineColor';
+    });
+
+    local WatermarkBoxInner = Library:Create('Frame', {
+        BackgroundColor3 = Library.BackgroundColor;
+        BorderColor3 = Color3.new(0, 0, 0);
+        Size = UDim2.new(1, -2, 1, -2);
+        Position = UDim2.new(0, 1, 0, 1);
+        ZIndex = 204;
+        Parent = WatermarkBoxOuter;
+    });
+    Library:AddToRegistry(WatermarkBoxInner, { BackgroundColor3 = 'BackgroundColor' });
 
     local WatermarkLabel = Library:CreateLabel({
         Position = UDim2.new(0, 8, 0, 0);
@@ -3241,13 +3302,13 @@ do
         TextSize = 14;
         TextXAlignment = Enum.TextXAlignment.Center;
         TextYAlignment = Enum.TextYAlignment.Center;
-        ZIndex = 203;
-        Parent = InnerFrame;
+        ZIndex = 205;
+        Parent = WatermarkBoxInner;
     });
 
     Library.Watermark = WatermarkOuter;
     Library.WatermarkText = WatermarkLabel;
-    Library:MakeDraggable(Library.Watermark);
+    Library:MakeDraggableOutline(Library.Watermark, 25);
 
     -- WatermarkLabel のテキストが変わるたびにフレーム幅をリアルタイムで再計算
     WatermarkLabel:GetPropertyChangedSignal('Text'):Connect(function()
