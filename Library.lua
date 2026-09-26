@@ -403,15 +403,6 @@ function Library:RemoveFromRegistry(Instance)
 end;
 
 function Library:UpdateColorsUsingRegistry()
-    -- TODO: Could have an 'active' list of objects
-    -- where the active list only contains Visible objects.
-
-    -- IMPL: Could setup .Changed events on the AddToRegistry function
-    -- that listens for the 'Visible' propert being changed.
-    -- Visible: true => Add to active list, and call UpdateColors function
-    -- Visible: false => Remove from active list.
-
-    -- The above would be especially efficient for a rainbow menu color or live color-changing.
 
     for Idx, Object in next, Library.Registry do
         for Property, ColorIdx in next, Object.Properties do
@@ -425,12 +416,12 @@ function Library:UpdateColorsUsingRegistry()
 end;
 
 function Library:GiveSignal(Signal)
-    -- Only used for signals not attached to library instances, as those should be cleaned up on object destruction by Roblox
+
     table.insert(Library.Signals, Signal)
 end
 
 function Library:Unload()
-    -- Unload disabled
+
 end
 
 function Library:OnUnload(Callback)
@@ -450,7 +441,6 @@ do
 
     function Funcs:AddColorPicker(Idx, Info)
         local ToggleLabel = self.TextLabel;
-        -- local Container = self.Container;
 
         assert(Info.Default, 'AddColorPicker: Missing default value.');
 
@@ -481,7 +471,6 @@ do
             Parent = ToggleLabel;
         });
 
-        -- Transparency image taken from https://github.com/matas3535/SplixPrivateDrawingLibrary/blob/main/Library.lua cus i'm lazy
         local CheckerFrame = Library:Create('ImageLabel', {
             BorderSizePixel = 0;
             Size = UDim2.new(0, 27, 0, 13);
@@ -490,11 +479,6 @@ do
             Visible = not not Info.Transparency;
             Parent = DisplayFrame;
         });
-
-        -- 1/16/23
-        -- Rewrote this to be placed inside the Library ScreenGui
-        -- There was some issue which caused RelativeOffset to be way off
-        -- Thus the color picker would never show
 
         local PickerFrameOuter = Library:Create('Frame', {
             Name = 'Color';
@@ -698,12 +682,11 @@ do
             Position = UDim2.fromOffset(5, 5);
             TextXAlignment = Enum.TextXAlignment.Left;
             TextSize = 14;
-            Text = ColorPicker.Title,--Info.Default;
+            Text = ColorPicker.Title,
             TextWrapped = false;
             ZIndex = 16;
             Parent = PickerFrameInner;
         });
-
 
         local ContextMenu = {}
         do
@@ -818,7 +801,6 @@ do
                 end
                 ColorPicker:SetValueRGB(Library.ColorClipboard)
             end)
-
 
             ContextMenu:AddOption('Copy HEX', function()
                 pcall(setclipboard, ColorPicker.Value:ToHex())
@@ -1034,8 +1016,6 @@ do
         ColorPicker:Display();
         ColorPicker.DisplayFrame = DisplayFrame
 
-        -- Register this DisplayFrame so the parent Toggle's ToggleRegion
-        -- can skip firing when the mouse is over a ColorPicker swatch.
         if type(self._ColorPickerFrames) == 'table' then
             table.insert(self._ColorPickerFrames, DisplayFrame);
         end;
@@ -1055,7 +1035,7 @@ do
         local KeyPicker = {
             Value = Info.Default;
             Toggled = false;
-            Mode = Info.Mode or 'Toggle'; -- Always, Toggle, Hold
+            Mode = Info.Mode or 'Toggle';
             Type = 'KeyPicker';
             Callback = Info.Callback or function(Value) end;
             ChangedCallback = Info.ChangedCallback or function(New) end;
@@ -1201,31 +1181,23 @@ do
             DisplayLabel.Text = displayVal;
             ContainerLabel.Text = string.format('[%s] %s (%s)', displayVal, Info.Text, KeyPicker.Mode);
 
-            -- Keybind List Mode フィルタ
-            -- Library.KeypickerListMode: "All" | "Toggled" | "Active"
-            --   "All"     : NoUI=false のキーピッカーを全部表示
-            --   "Toggled" : 親トグルが ON のものだけ表示
-            --   "Active"  : 親トグルが ON かつ GetState()==true のものだけ表示
             local mode = Library.KeypickerListMode or 'All';
             local shouldShow;
             if mode == 'Active' then
-                -- 親がトグルで ON、かつキーが現在アクティブなものだけ
+
                 local parentOn = (ParentObj.Type == 'Toggle') and (ParentObj.Value == true);
                 shouldShow = parentOn and State;
             elseif mode == 'Toggled' then
-                -- 親がトグルで ON のものだけ
+
                 local parentOn = (ParentObj.Type == 'Toggle') and (ParentObj.Value == true);
                 shouldShow = parentOn;
             else
-                -- "All": 常に表示
+
                 shouldShow = true;
             end;
 
             ContainerLabel.Visible = shouldShow;
 
-            -- 親Toggleがある場合はそれがONの時だけActiveColor(AccentColor)にする。
-            -- 親ToggleがOFFなら、GetState()がtrueでも機能は発動していないため
-            -- 色はFontColor(非アクティブ)のままにする。
             local parentIsToggle = (ParentObj.Type == 'Toggle');
             local parentOn = (not parentIsToggle) or (ParentObj.Value == true);
             local colorActive = State and parentOn;
@@ -1330,7 +1302,7 @@ do
                     local Key;
 
                     if Input.UserInputType == Enum.UserInputType.Keyboard then
-                        -- ESC = cancel + unbind
+
                         if Input.KeyCode == Enum.KeyCode.Escape then
                             Break = true;
                             Picking = false;
@@ -1491,7 +1463,7 @@ do
     end;
 
     function Funcs:AddButton(...)
-        -- TODO: Eventually redo this
+
         local Button = {};
         local function ProcessButtonParams(Class, Obj, ...)
             local Props = select(1, ...)
@@ -1637,7 +1609,6 @@ do
             end
             return self
         end
-
 
         function Button:AddButton(...)
             local SubButton = {}
@@ -1846,28 +1817,23 @@ do
             end);
         end
 
-        -- https://devforum.roblox.com/t/how-to-make-textboxes-follow-current-cursor-position/1368429/6
-        -- thank you nicemike40 :)
-
         local function Update()
             local PADDING = 2
             local reveal = Container.AbsoluteSize.X
 
             if not Box:IsFocused() or Box.TextBounds.X <= reveal - 2 * PADDING then
-                -- we aren't focused, or we fit so be normal
+
                 Box.Position = UDim2.new(0, PADDING, 0, 0)
             else
-                -- we are focused and don't fit, so adjust position
+
                 local cursor = Box.CursorPosition
                 if cursor ~= -1 then
-                    -- calculate pixel width of text from start to cursor
+
                     local subtext = string.sub(Box.Text, 1, cursor-1)
                     local width = TextService:GetTextSize(subtext, Box.TextSize, Box.Font, Vector2.new(math.huge, math.huge)).X
 
-                    -- check if we're inside the box with the cursor
                     local currentCursorPos = Box.Position.X.Offset + width
 
-                    -- adjust if necessary
                     if currentCursorPos < PADDING then
                         Box.Position = UDim2.fromOffset(PADDING-width, 0)
                     elseif currentCursorPos > reveal - PADDING - 1 then
@@ -2015,7 +1981,7 @@ do
 
         ToggleRegion.InputBegan:Connect(function(Input)
             if Input.UserInputType == Enum.UserInputType.MouseButton1 and not Library:MouseIsOverOpenedFrame() then
-                -- If mouse is over any inline ColorPicker DisplayFrame, don't fire the toggle
+
                 for _, cpFrame in next, Toggle._ColorPickerFrames do
                     if Library:IsMouseOverFrame(cpFrame) then
                         return;
@@ -2189,7 +2155,6 @@ do
                 return math.floor(Value);
             end;
 
-
             return tonumber(string.format('%.' .. Slider.Rounding .. 'f', Value))
         end;
 
@@ -2250,13 +2215,10 @@ do
         return Slider;
     end;
 
-    -- AddSliderRow: 2つのスライダーを横並び(同列)で表示する
-    -- 使い方: Groupbox:AddSliderRow(IdxA, InfoA, IdxB, InfoB)
     function Funcs:AddSliderRow(IdxA, InfoA, IdxB, InfoB)
         local Groupbox = self;
         local Container = Groupbox.Container;
 
-        -- 横並びを保持するホルダーフレーム
         local RowHolder = Library:Create('Frame', {
             BackgroundTransparency = 1;
             Size = UDim2.new(1, -4, 0, 13);
@@ -2273,14 +2235,13 @@ do
             Parent = RowHolder;
         });
 
-        -- 各スライダーを左右に構築するローカル関数
         local function BuildHalfSlider(Holder, Idx, Info, LayoutOrder)
             local Slider = {
                 Value   = Info.Default;
                 Min     = Info.Min;
                 Max     = Info.Max;
                 Rounding = Info.Rounding;
-                MaxSize = 108; -- 初期値: 後でAbsoluteSizeで更新
+                MaxSize = 108;
                 Type    = 'Slider';
                 Callback = Info.Callback or function() end;
             };
@@ -2351,7 +2312,6 @@ do
                 Library:AddToolTip(Info.Tooltip, SliderOuter);
             end
 
-            -- MaxSizeをAbsoluteSizeから動的に同期
             SliderOuter:GetPropertyChangedSignal('AbsoluteSize'):Connect(function()
                 Slider.MaxSize = math.max(1, SliderOuter.AbsoluteSize.X - 2);
                 Slider:Display();
@@ -2364,7 +2324,7 @@ do
 
             function Slider:Display()
                 local Suffix = Info.Suffix or '';
-                -- Compactスタイル: "Text: value"
+
                 DisplayLabel.Text = Info.Text .. ': ' .. Slider.Value .. Suffix;
 
                 local X = math.ceil(Library:MapValue(Slider.Value, Slider.Min, Slider.Max, 0, Slider.MaxSize));
@@ -2434,11 +2394,6 @@ do
         Groupbox:Resize();
     end;
 
-    -- AddSliderRow3: 3つのスライダーを同じライン(横並び)で表示する
-    -- 使い方: Groupbox:AddSliderRow3(IdxA, InfoA, IdxB, InfoB, IdxC, InfoC)
-    --   Info は AddSlider と同じ (Text / Default / Min / Max / Rounding / Suffix / Callback / Tooltip)
-    --   Info.HideText = true にすると「値だけ」を表示 (幅が狭くてラベルが切れる場合に便利)
-    --   戻り値: 3つの Slider オブジェクト (Options[Idx] からも取得可能)
     function Funcs:AddSliderRow3(IdxA, InfoA, IdxB, InfoB, IdxC, InfoC)
         local Groupbox = self;
         local Container = Groupbox.Container;
@@ -2456,7 +2411,6 @@ do
             assert(Info.Rounding, 'AddSliderRow3: Missing rounding value (slider #' .. i .. ').');
         end;
 
-        -- 横並びを保持するホルダーフレーム
         local RowHolder = Library:Create('Frame', {
             BackgroundTransparency = 1;
             Size = UDim2.new(1, -4, 0, 13);
@@ -2473,19 +2427,17 @@ do
             Parent = RowHolder;
         });
 
-        -- 1/3幅のスライダーを1本構築するローカル関数
         local function BuildThirdSlider(Holder, Idx, Info, LayoutOrder)
             local Slider = {
                 Value    = Info.Default;
                 Min      = Info.Min;
                 Max      = Info.Max;
                 Rounding = Info.Rounding;
-                MaxSize  = 70; -- 初期値: 後でAbsoluteSizeで更新
+                MaxSize  = 70;
                 Type     = 'Slider';
                 Callback = Info.Callback or function() end;
             };
 
-            -- 幅: 1/3 - (Padding4px x 2本分 / 3) ≒ 1/3, -3
             local SliderOuter = Library:Create('Frame', {
                 BackgroundColor3 = Color3.new(0, 0, 0);
                 BorderColor3     = Color3.new(0, 0, 0);
@@ -2535,7 +2487,6 @@ do
 
             Library:AddToRegistry(HideBorderRight, { BackgroundColor3 = 'AccentColor' });
 
-            -- 幅が狭いので少し小さめの文字 + はみ出し時は末尾を省略
             local DisplayLabel = Library:CreateLabel({
                 Size             = UDim2.new(1, 0, 1, 0);
                 TextSize         = 12;
@@ -2554,7 +2505,6 @@ do
                 Library:AddToolTip(Info.Tooltip, SliderOuter);
             end
 
-            -- MaxSizeをAbsoluteSizeから動的に同期
             SliderOuter:GetPropertyChangedSignal('AbsoluteSize'):Connect(function()
                 Slider.MaxSize = math.max(1, SliderOuter.AbsoluteSize.X - 2);
                 Slider:Display();
@@ -2629,7 +2579,6 @@ do
                 end;
             end);
 
-            -- 既にレイアウト計算済みなら実幅を反映
             if SliderOuter.AbsoluteSize.X > 2 then
                 Slider.MaxSize = SliderOuter.AbsoluteSize.X - 2;
             end;
@@ -2670,7 +2619,7 @@ do
             Value = Info.Multi and {};
             Multi = Info.Multi;
             Type = 'Dropdown';
-            SpecialType = Info.SpecialType; -- can be either 'Player' or 'Team'
+            SpecialType = Info.SpecialType;
             Callback = Info.Callback or function(Value) end;
         };
 
@@ -3180,7 +3129,6 @@ do
     end;
 end;
 
--- < Create other UI elements >
 do
     Library.NotificationArea = Library:Create('Frame', {
         BackgroundTransparency = 1;
@@ -3217,7 +3165,7 @@ do
             and Enum.HorizontalAlignment.Center
             or (pos == 'Right' and Enum.HorizontalAlignment.Right or Enum.HorizontalAlignment.Left)
         self.NotificationArea.AnchorPoint = Vector2.new(0, 0)
-        -- Keep the displayed X/Y values unchanged, but make each unit move farther.
+
         local PositionScale = 5
         self.NotificationArea.Position = UDim2.new(0, x * PositionScale, 0, 40 + (y * PositionScale))
     end
@@ -3249,7 +3197,6 @@ do
         BorderColor3 = 'OutlineColor';
     });
 
-    -- ESP Preview と同じタイトル用の空ラベル（ドラッグ領域）
     Library:CreateLabel({
         Position = UDim2.new(0, 0, 0, 0);
         Size = UDim2.new(1, 0, 0, 25);
@@ -3273,7 +3220,6 @@ do
     Library.WatermarkText = WatermarkLabel;
     Library:MakeDraggableOutline(Library.Watermark, 25);
 
-    -- WatermarkLabel のテキストが変わるたびにフレーム幅をリアルタイムで再計算
     WatermarkLabel:GetPropertyChangedSignal('Text'):Connect(function()
         local txt = WatermarkLabel.Text
         if not txt or txt == '' then return end
@@ -3281,8 +3227,6 @@ do
         local X, Y = Bounds.X, Bounds.Y
         WatermarkOuter.Size = UDim2.new(0, X + 32, 0, 34)
     end)
-
-
 
     local KeybindOuter = Library:Create('Frame', {
         AnchorPoint = Vector2.new(0, 0.5);
@@ -3366,7 +3310,7 @@ function Library:SetWatermarkVisibility(Bool)
 end;
 
 function Library:SetWatermark(Text)
-    -- 横一列の Watermark 幅を文字列幅から算出する。
+
     local Bounds = TextService:GetTextSize(Text, 14, Library.Font, Vector2.new(math.huge, math.huge));
     local X, Y = Bounds.X, Bounds.Y;
     Library.Watermark.Size = UDim2.new(0, X + 32, 0, 34);
@@ -3557,7 +3501,6 @@ function Library:CreateWindow(...)
         Parent = Inner;
     });
 
-    -- GameName label (アクセントカラー、タイトルの右側)
     if type(Config.GameName) == 'string' and Config.GameName ~= '' then
         local GameNameLabel = Library:CreateLabel({
             Position = UDim2.new(0, 8, 0, 0);
@@ -3624,7 +3567,6 @@ function Library:CreateWindow(...)
         Parent = MainSectionInner;
     });
     
-
     Library:AddToRegistry(TabContainer, {
         BackgroundColor3 = 'MainColor';
         BorderColor3 = 'OutlineColor';
@@ -3778,7 +3720,7 @@ function Library:CreateWindow(...)
             local BoxInner = Library:Create('Frame', {
                 BackgroundColor3 = Library.BackgroundColor;
                 BorderColor3 = Color3.new(0, 0, 0);
-                -- BorderMode = Enum.BorderMode.Inset;
+
                 Size = UDim2.new(1, -2, 1, -2);
                 Position = UDim2.new(0, 1, 0, 1);
                 ZIndex = 4;
@@ -3878,7 +3820,7 @@ function Library:CreateWindow(...)
             local BoxInner = Library:Create('Frame', {
                 BackgroundColor3 = Library.BackgroundColor;
                 BorderColor3 = Color3.new(0, 0, 0);
-                -- BorderMode = Enum.BorderMode.Inset;
+
                 Size = UDim2.new(1, -2, 1, -2);
                 Position = UDim2.new(0, 1, 0, 1);
                 ZIndex = 4;
@@ -4034,7 +3976,6 @@ function Library:CreateWindow(...)
                 Tab:AddBlank(3);
                 Tab:Resize();
 
-                -- Show first tab (number is 2 cus of the UIListLayout that also sits in that instance)
                 if #TabboxButtons:GetChildren() == 2 then
                     Tab:Show();
                 end;
@@ -4068,7 +4009,6 @@ function Library:CreateWindow(...)
             end;
         end);
 
-        -- This was the first tab added, so we show it by default.
         if #TabContainer:GetChildren() == 1 then
             Tab:ShowTab();
         end;
@@ -4097,7 +4037,7 @@ function Library:CreateWindow(...)
             Outer.Visible = true;
 
             task.spawn(function()
-                -- TODO: add cursor fade?
+
                 local State = InputService.MouseIconEnabled;
 
                 local Cursor = Drawing.new('Triangle');
