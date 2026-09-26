@@ -3185,17 +3185,43 @@ do
     Library.NotificationArea = Library:Create('Frame', {
         BackgroundTransparency = 1;
         Position = UDim2.new(0, 0, 0, 40);
-        Size = UDim2.new(0, 300, 0, 200);
+        Size = UDim2.new(1, 0, 0, 200);
         ZIndex = 100;
         Parent = ScreenGui;
     });
 
-    Library:Create('UIListLayout', {
+    local NotificationLayout = Library:Create('UIListLayout', {
         Padding = UDim.new(0, 4);
         FillDirection = Enum.FillDirection.Vertical;
         SortOrder = Enum.SortOrder.LayoutOrder;
         Parent = Library.NotificationArea;
     });
+
+    Library.NotificationSettings = {
+        TextColor = Library.FontColor,
+        OutlineColor = Library.OutlineColor,
+        BackgroundColor = Library.BackgroundColor,
+        Position = 'Right',
+        Bar = 'Left',
+        X = 10,
+        Y = 0,
+        Transparency = 0,
+    };
+
+    function Library:ApplyNotificationSettings()
+        local s = self.NotificationSettings
+        local x = tonumber(s.X) or 0
+        local y = tonumber(s.Y) or 0
+        local pos = s.Position or 'Right'
+        NotificationLayout.HorizontalAlignment = pos == 'Center'
+            and Enum.HorizontalAlignment.Center
+            or (pos == 'Right' and Enum.HorizontalAlignment.Right or Enum.HorizontalAlignment.Left)
+        self.NotificationArea.AnchorPoint = Vector2.new(0, 0)
+        -- Keep the displayed X/Y values unchanged, but make each unit move farther.
+        local PositionScale = 5
+        self.NotificationArea.Position = UDim2.new(0, x * PositionScale, 0, 40 + (y * PositionScale))
+    end
+    Library:ApplyNotificationSettings()
 
     local WatermarkOuter = Library:Create('Frame', {
         BackgroundColor3 = Color3.new(0, 0, 0);
@@ -3324,7 +3350,14 @@ do
     })
 
     Library.KeybindFrame = KeybindOuter;
+    Library.KeybindOuter = KeybindOuter;
     Library.KeybindContainer = KeybindContainer;
+    Library.KeybindInner = KeybindInner;
+    function Library:SetKeybindTransparency(value)
+        local alpha = 1 - math.clamp(tonumber(value) or 0, 0, 1)
+        if self.KeybindOuter then self.KeybindOuter.BackgroundTransparency = alpha end
+        if self.KeybindInner then self.KeybindInner.BackgroundTransparency = alpha end
+    end
     Library:MakeDraggable(KeybindOuter);
 end;
 
@@ -3349,7 +3382,8 @@ function Library:Notify(Text, Time)
 
     local NotifyOuter = Library:Create('Frame', {
         BorderColor3 = Color3.new(0, 0, 0);
-        Position = UDim2.new(0, 100, 0, 10);
+        Position = UDim2.new(0, 0, 0, 0);
+        BackgroundTransparency = 1 - (Library.NotificationSettings.Transparency or 0);
         Size = UDim2.new(0, 0, 0, YSize);
         ClipsDescendants = true;
         ZIndex = 100;
@@ -3357,8 +3391,9 @@ function Library:Notify(Text, Time)
     });
 
     local NotifyInner = Library:Create('Frame', {
-        BackgroundColor3 = Library.MainColor;
-        BorderColor3 = Library.OutlineColor;
+        BackgroundColor3 = Library.NotificationSettings.BackgroundColor or Library.MainColor;
+        BorderColor3 = Library.NotificationSettings.OutlineColor or Library.OutlineColor;
+        BackgroundTransparency = 1 - (Library.NotificationSettings.Transparency or 0);
         BorderMode = Enum.BorderMode.Inset;
         Size = UDim2.new(1, 0, 1, 0);
         ZIndex = 101;
@@ -3366,12 +3401,13 @@ function Library:Notify(Text, Time)
     });
 
     Library:AddToRegistry(NotifyInner, {
-        BackgroundColor3 = 'MainColor';
-        BorderColor3 = 'OutlineColor';
+        BackgroundColor3 = function() return Library.NotificationSettings.BackgroundColor or Library.MainColor end;
+        BorderColor3 = function() return Library.NotificationSettings.OutlineColor or Library.OutlineColor end;
     }, true);
 
     local InnerFrame = Library:Create('Frame', {
-        BackgroundColor3 = Color3.new(1, 1, 1);
+        BackgroundColor3 = Library.NotificationSettings.BackgroundColor or Library.MainColor;
+        BackgroundTransparency = 1 - (Library.NotificationSettings.Transparency or 0);
         BorderSizePixel = 0;
         Position = UDim2.new(0, 1, 0, 1);
         Size = UDim2.new(1, -2, 1, -2);
@@ -3381,8 +3417,8 @@ function Library:Notify(Text, Time)
 
     local Gradient = Library:Create('UIGradient', {
         Color = ColorSequence.new({
-            ColorSequenceKeypoint.new(0, Library:GetDarkerColor(Library.MainColor)),
-            ColorSequenceKeypoint.new(1, Library.MainColor),
+            ColorSequenceKeypoint.new(0, Library.NotificationSettings.BackgroundColor or Library.MainColor),
+            ColorSequenceKeypoint.new(1, Library.NotificationSettings.BackgroundColor or Library.MainColor),
         });
         Rotation = -90;
         Parent = InnerFrame;
@@ -3391,8 +3427,8 @@ function Library:Notify(Text, Time)
     Library:AddToRegistry(Gradient, {
         Color = function()
             return ColorSequence.new({
-                ColorSequenceKeypoint.new(0, Library:GetDarkerColor(Library.MainColor)),
-                ColorSequenceKeypoint.new(1, Library.MainColor),
+                ColorSequenceKeypoint.new(0, Library.NotificationSettings.BackgroundColor or Library.MainColor),
+                ColorSequenceKeypoint.new(1, Library.NotificationSettings.BackgroundColor or Library.MainColor),
             });
         end
     });
@@ -3403,6 +3439,7 @@ function Library:Notify(Text, Time)
         Text = Text;
         TextXAlignment = Enum.TextXAlignment.Left;
         TextSize = 14;
+        TextColor3 = Library.NotificationSettings.TextColor or Library.FontColor;
         ZIndex = 103;
         Parent = InnerFrame;
     });
@@ -3419,6 +3456,17 @@ function Library:Notify(Text, Time)
     Library:AddToRegistry(LeftColor, {
         BackgroundColor3 = 'AccentColor';
     }, true);
+
+    local bar = Library.NotificationSettings.Bar or 'Left'
+    if bar == 'Right' then
+        LeftColor.Position = UDim2.new(1, -2, 0, -1)
+    elseif bar == 'Bottom' then
+        LeftColor.Position = UDim2.new(0, -1, 1, -2)
+        LeftColor.Size = UDim2.new(1, 2, 0, 3)
+    elseif bar == 'Upper' then
+        LeftColor.Position = UDim2.new(0, -1, 0, -1)
+        LeftColor.Size = UDim2.new(1, 2, 0, 3)
+    end
 
     pcall(NotifyOuter.TweenSize, NotifyOuter, UDim2.new(0, XSize + 8 + 4, 0, YSize), 'Out', 'Quad', 0.4, true);
 
