@@ -1221,10 +1221,19 @@ do
         end;
 
         function KeyPicker:GetState()
+            -- 親toggleがonかつキーバインドが未設定なら発動状態とみなす
+            local noKeybind = (KeyPicker.Value == 'None' or KeyPicker.Value == '');
+            local parentIsToggle = (ParentObj.Type == 'Toggle');
+            local parentOn = parentIsToggle and (ParentObj.Value == true);
+
+            if noKeybind and parentOn then
+                return true;
+            end;
+
             if KeyPicker.Mode == 'Always' then
                 return true;
             elseif KeyPicker.Mode == 'Hold' then
-                if KeyPicker.Value == 'None' then
+                if noKeybind then
                     return false;
                 end
 
