@@ -403,6 +403,7 @@ function Library:RemoveFromRegistry(Instance)
 end;
 
 function Library:UpdateColorsUsingRegistry()
+    Library.AccentColorDark = Library:GetDarkerColor(Library.AccentColor);
 
     for Idx, Object in next, Library.Registry do
         for Property, ColorIdx in next, Object.Properties do
