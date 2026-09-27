@@ -3840,18 +3840,6 @@ function Library:CreateWindow(...)
                 BackgroundColor3 = 'BackgroundColor';
             });
 
-            local Highlight = Library:Create('Frame', {
-                BackgroundColor3 = Library.AccentColor;
-                BorderSizePixel = 0;
-                Size = UDim2.new(1, 0, 0, 2);
-                ZIndex = 10;
-                Parent = BoxInner;
-            });
-
-            Library:AddToRegistry(Highlight, {
-                BackgroundColor3 = 'AccentColor';
-            });
-
             local TabboxButtons = Library:Create('Frame', {
                 BackgroundTransparency = 1;
                 Position = UDim2.new(0, 0, 0, 1);
@@ -3872,6 +3860,7 @@ function Library:CreateWindow(...)
 
                 local Button = Library:Create('Frame', {
                     BackgroundColor3 = Library.MainColor;
+                    BackgroundTransparency = 0.8;
                     BorderColor3 = Color3.new(0, 0, 0);
                     Size = UDim2.new(0.5, 0, 1, 0);
                     ZIndex = 6;
@@ -3880,6 +3869,19 @@ function Library:CreateWindow(...)
 
                 Library:AddToRegistry(Button, {
                     BackgroundColor3 = 'MainColor';
+                });
+
+                local TabAccent = Library:Create('Frame', {
+                    BackgroundColor3 = Library.AccentColor;
+                    BorderSizePixel = 0;
+                    Size = UDim2.new(1, 0, 0, 2);
+                    Visible = false;
+                    ZIndex = 8;
+                    Parent = Button;
+                });
+
+                Library:AddToRegistry(TabAccent, {
+                    BackgroundColor3 = 'AccentColor';
                 });
 
                 local ButtonLabel = Library:CreateLabel({
@@ -3927,8 +3929,10 @@ function Library:CreateWindow(...)
 
                     Container.Visible = true;
                     Block.Visible = true;
+                    TabAccent.Visible = true;
 
                     Button.BackgroundColor3 = Library.BackgroundColor;
+                    Button.BackgroundTransparency = 0;
                     Library.RegistryMap[Button].Properties.BackgroundColor3 = 'BackgroundColor';
 
                     Tab:Resize();
@@ -3937,8 +3941,10 @@ function Library:CreateWindow(...)
                 function Tab:Hide()
                     Container.Visible = false;
                     Block.Visible = false;
+                    TabAccent.Visible = false;
 
                     Button.BackgroundColor3 = Library.MainColor;
+                    Button.BackgroundTransparency = 0.8;
                     Library.RegistryMap[Button].Properties.BackgroundColor3 = 'MainColor';
                 end;
 
