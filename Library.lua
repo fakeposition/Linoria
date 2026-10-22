@@ -3155,8 +3155,6 @@ do
         Parent = Library.NotificationArea;
     });
 
-    -- 本物のLinoria準拠のデフォルト (背景はMainColor)
-    -- ここの値のまま(=未カスタマイズ)なら、Notify側でテーマ色(Library.MainColor等)に追従する
     Library.NotificationDefaults = {
         TextColor = Library.FontColor,
         OutlineColor = Library.OutlineColor,
@@ -3171,7 +3169,7 @@ do
         Bar = 'Left',
         X = 10,
         Y = 0,
-        Transparency = 0, -- 0 = 不透明 / 1 = 完全透明
+        Transparency = 0,
     };
 
     function Library:ApplyNotificationSettings()
@@ -3315,7 +3313,7 @@ do
     Library.KeybindOuter = KeybindOuter;
     Library.KeybindContainer = KeybindContainer;
     Library.KeybindInner = KeybindInner;
-    Library.KeybindTransparency = 0 -- 0 = 不透明 / 1 = 完全透明
+    Library.KeybindTransparency = 0
     function Library:SetKeybindTransparency(value)
         local alpha = math.clamp(tonumber(value) or 0, 0, 1)
         self.KeybindTransparency = alpha
@@ -3424,7 +3422,6 @@ function Library:Notify(Text, Time)
         Parent = InnerFrame;
     });
 
-    -- カスタム文字色がテーマ更新で上書きされないように
     Library.RegistryMap[NotifyLabel].Properties.TextColor3 = function() return NotifyColor('TextColor', 'FontColor') end;
 
     local LeftColor = Library:Create('Frame', {
