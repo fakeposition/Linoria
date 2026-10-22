@@ -3155,15 +3155,23 @@ do
         Parent = Library.NotificationArea;
     });
 
-    Library.NotificationSettings = {
+    -- 本物のLinoria準拠のデフォルト (背景はMainColor)
+    -- ここの値のまま(=未カスタマイズ)なら、Notify側でテーマ色(Library.MainColor等)に追従する
+    Library.NotificationDefaults = {
         TextColor = Library.FontColor,
         OutlineColor = Library.OutlineColor,
-        BackgroundColor = Library.BackgroundColor,
+        BackgroundColor = Library.MainColor,
+    };
+
+    Library.NotificationSettings = {
+        TextColor = Library.NotificationDefaults.TextColor,
+        OutlineColor = Library.NotificationDefaults.OutlineColor,
+        BackgroundColor = Library.NotificationDefaults.BackgroundColor,
         Position = 'Right',
         Bar = 'Left',
         X = 10,
         Y = 0,
-        Transparency = 0,
+        Transparency = 0, -- 0 = 不透明 / 1 = 完全透明
     };
 
     function Library:ApplyNotificationSettings()
@@ -3307,11 +3315,14 @@ do
     Library.KeybindOuter = KeybindOuter;
     Library.KeybindContainer = KeybindContainer;
     Library.KeybindInner = KeybindInner;
+    Library.KeybindTransparency = 0 -- 0 = 不透明 / 1 = 完全透明
     function Library:SetKeybindTransparency(value)
-        local alpha = 1 - math.clamp(tonumber(value) or 0, 0, 1)
+        local alpha = math.clamp(tonumber(value) or 0, 0, 1)
+        self.KeybindTransparency = alpha
         if self.KeybindOuter then self.KeybindOuter.BackgroundTransparency = alpha end
         if self.KeybindInner then self.KeybindInner.BackgroundTransparency = alpha end
     end
+    Library:SetKeybindTransparency(0)
     Library:MakeDraggable(KeybindOuter);
 end;
 
@@ -3334,10 +3345,33 @@ function Library:Notify(Text, Time)
 
     YSize = YSize + 7
 
+    local function NotifyColor(Key, LibKey)
+        local Value = Library.NotificationSettings[Key]
+        local Default = Library.NotificationDefaults and Library.NotificationDefaults[Key]
+        if Value == nil or Value == Default then
+            return Library[LibKey]
+        end
+        return Value
+    end
+
+    local function NotifyAlpha()
+        return math.clamp(tonumber(Library.NotificationSettings.Transparency) or 0, 0, 1)
+    end
+
+    local function BackgroundColor() return NotifyColor('BackgroundColor', 'MainColor') end
+    local function OutlineColor() return NotifyColor('OutlineColor', 'OutlineColor') end
+    local function GradientSequence()
+        local Color = BackgroundColor()
+        return ColorSequence.new({
+            ColorSequenceKeypoint.new(0, Library:GetDarkerColor(Color)),
+            ColorSequenceKeypoint.new(1, Color),
+        });
+    end
+
     local NotifyOuter = Library:Create('Frame', {
         BorderColor3 = Color3.new(0, 0, 0);
-        Position = UDim2.new(0, 0, 0, 0);
-        BackgroundTransparency = 1 - (Library.NotificationSettings.Transparency or 0);
+        Position = UDim2.new(0, 100, 0, 10);
+        BackgroundTransparency = NotifyAlpha();
         Size = UDim2.new(0, 0, 0, YSize);
         ClipsDescendants = true;
         ZIndex = 100;
@@ -3345,9 +3379,9 @@ function Library:Notify(Text, Time)
     });
 
     local NotifyInner = Library:Create('Frame', {
-        BackgroundColor3 = Library.NotificationSettings.BackgroundColor or Library.MainColor;
-        BorderColor3 = Library.NotificationSettings.OutlineColor or Library.OutlineColor;
-        BackgroundTransparency = 1 - (Library.NotificationSettings.Transparency or 0);
+        BackgroundColor3 = BackgroundColor();
+        BorderColor3 = OutlineColor();
+        BackgroundTransparency = NotifyAlpha();
         BorderMode = Enum.BorderMode.Inset;
         Size = UDim2.new(1, 0, 1, 0);
         ZIndex = 101;
@@ -3355,13 +3389,13 @@ function Library:Notify(Text, Time)
     });
 
     Library:AddToRegistry(NotifyInner, {
-        BackgroundColor3 = function() return Library.NotificationSettings.BackgroundColor or Library.MainColor end;
-        BorderColor3 = function() return Library.NotificationSettings.OutlineColor or Library.OutlineColor end;
+        BackgroundColor3 = BackgroundColor;
+        BorderColor3 = OutlineColor;
     }, true);
 
     local InnerFrame = Library:Create('Frame', {
-        BackgroundColor3 = Library.NotificationSettings.BackgroundColor or Library.MainColor;
-        BackgroundTransparency = 1 - (Library.NotificationSettings.Transparency or 0);
+        BackgroundColor3 = Color3.new(1, 1, 1);
+        BackgroundTransparency = NotifyAlpha();
         BorderSizePixel = 0;
         Position = UDim2.new(0, 1, 0, 1);
         Size = UDim2.new(1, -2, 1, -2);
@@ -3370,21 +3404,13 @@ function Library:Notify(Text, Time)
     });
 
     local Gradient = Library:Create('UIGradient', {
-        Color = ColorSequence.new({
-            ColorSequenceKeypoint.new(0, Library.NotificationSettings.BackgroundColor or Library.MainColor),
-            ColorSequenceKeypoint.new(1, Library.NotificationSettings.BackgroundColor or Library.MainColor),
-        });
+        Color = GradientSequence();
         Rotation = -90;
         Parent = InnerFrame;
     });
 
     Library:AddToRegistry(Gradient, {
-        Color = function()
-            return ColorSequence.new({
-                ColorSequenceKeypoint.new(0, Library.NotificationSettings.BackgroundColor or Library.MainColor),
-                ColorSequenceKeypoint.new(1, Library.NotificationSettings.BackgroundColor or Library.MainColor),
-            });
-        end
+        Color = GradientSequence;
     });
 
     local NotifyLabel = Library:CreateLabel({
@@ -3393,10 +3419,13 @@ function Library:Notify(Text, Time)
         Text = Text;
         TextXAlignment = Enum.TextXAlignment.Left;
         TextSize = 14;
-        TextColor3 = Library.NotificationSettings.TextColor or Library.FontColor;
+        TextColor3 = NotifyColor('TextColor', 'FontColor');
         ZIndex = 103;
         Parent = InnerFrame;
     });
+
+    -- カスタム文字色がテーマ更新で上書きされないように
+    Library.RegistryMap[NotifyLabel].Properties.TextColor3 = function() return NotifyColor('TextColor', 'FontColor') end;
 
     local LeftColor = Library:Create('Frame', {
         BackgroundColor3 = Library.AccentColor;
