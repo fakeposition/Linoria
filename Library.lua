@@ -463,6 +463,13 @@ do
 
         ColorPicker:SetHSVFromRGB(ColorPicker.Value);
 
+        local Group = self._ColorPickers;
+        if type(Group) ~= 'table' then
+            Group = {};
+            self._ColorPickers = Group;
+        end;
+        table.insert(Group, ColorPicker);
+
         local DisplayFrame = Library:Create('Frame', {
             BackgroundColor3 = ColorPicker.Value;
             BorderColor3 = Library:GetDarkerColor(ColorPicker.Value);
@@ -691,10 +698,14 @@ do
 
         local ContextMenu = {}
         do
+            local GRADIENT_HUE_SHIFT = 0.12
+            local GRADIENT_DARKEN = 0.3
+
             ContextMenu.Options = {}
             ContextMenu.Container = Library:Create('Frame', {
                 BorderColor3 = Color3.new(),
                 ZIndex = 14,
+                Active = true,
 
                 Visible = false,
                 Parent = ScreenGui
@@ -706,6 +717,7 @@ do
                 BorderMode = Enum.BorderMode.Inset;
                 Size = UDim2.fromScale(1, 1);
                 ZIndex = 15;
+                Active = true;
                 Parent = ContextMenu.Container;
             });
 
@@ -756,10 +768,12 @@ do
 
             function ContextMenu:Show()
                 self.Container.Visible = true
+                Library.OpenedFrames[self.Container] = true
             end
 
             function ContextMenu:Hide()
                 self.Container.Visible = false
+                Library.OpenedFrames[self.Container] = nil
             end
 
             function ContextMenu:AddOption(Str, Callback)
@@ -768,7 +782,7 @@ do
                 end
 
                 local Button = Library:CreateLabel({
-                    Active = false;
+                    Active = true;
                     Size = UDim2.new(1, 0, 0, 15);
                     TextSize = 13;
                     Text = Str;
@@ -787,30 +801,68 @@ do
                         return
                     end
 
-                    Callback()
+                    Library:SafeCallback(Callback)
+
+                    task.defer(function()
+                        ContextMenu:Hide()
+                    end)
                 end)
             end
 
-            ContextMenu:AddOption('Copy color', function()
+            ContextMenu:AddOption('Make Gradient', function()
+                local Index = table.find(Group, ColorPicker)
+
+                if not Index or #Group < 2 then
+                    return
+                end
+
+                local Step = (Index == #Group) and -1 or 1
+                local Count = (Step == 1) and (#Group - Index) or (Index - 1)
+
+                local H, S, V = Color3.toHSV(ColorPicker.Value)
+
+                for i = 1, Count do
+                    local Target = Group[Index + (i * Step)]
+                    local t = i / Count
+
+                    Target:SetValueRGB(
+                        Color3.fromHSV((H + GRADIENT_HUE_SHIFT * t) % 1, S, V * (1 - GRADIENT_DARKEN * t)),
+                        Target.Transparency
+                    )
+                end
+
+                Library:AttemptSave()
+                Library:Notify('Applied gradient!', 2)
+            end)
+
+            ContextMenu:AddOption('Match Color', function()
+                local Changed = 0
+
+                for _, Other in next, Group do
+                    if Other ~= ColorPicker then
+                        Other:SetValueRGB(ColorPicker.Value, Other.Transparency)
+                        Changed = Changed + 1
+                    end
+                end
+
+                if Changed == 0 then
+                    return
+                end
+
+                Library:AttemptSave()
+                Library:Notify('Matched ' .. Changed .. ' color(s)!', 2)
+            end)
+
+            ContextMenu:AddOption('Copy Color', function()
                 Library.ColorClipboard = ColorPicker.Value
                 Library:Notify('Copied color!', 2)
             end)
 
-            ContextMenu:AddOption('Paste color', function()
+            ContextMenu:AddOption('Paste Color', function()
                 if not Library.ColorClipboard then
                     return Library:Notify('You have not copied a color!', 2)
                 end
                 ColorPicker:SetValueRGB(Library.ColorClipboard)
-            end)
-
-            ContextMenu:AddOption('Copy HEX', function()
-                pcall(setclipboard, ColorPicker.Value:ToHex())
-                Library:Notify('Copied hex code to clipboard!', 2)
-            end)
-
-            ContextMenu:AddOption('Copy RGB', function()
-                pcall(setclipboard, table.concat({ math.floor(ColorPicker.Value.R * 255), math.floor(ColorPicker.Value.G * 255), math.floor(ColorPicker.Value.B * 255) }, ', '))
-                Library:Notify('Copied RGB values to clipboard!', 2)
             end)
 
         end
